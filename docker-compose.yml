@@ -1,0 +1,12 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PATH=/app/.venv/bin:$PATH
+    volumes:
+      - .:/app
+      - /app/.venv
+    command: python -m uvicorn nimkit.src.main:app --host 0.0.0.0 --port 8000 --reload
