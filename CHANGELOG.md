@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/briancaffey/nvidia-nim-kit/compare/v1.1.0...v1.2.0) (2025-09-18)
+
+
+### Features
+
+* **frontend:** add nuxt frontend for nim kit with sample pages ([0ab2a80](https://github.com/briancaffey/nvidia-nim-kit/commit/0ab2a802c166a375a86b7eedcc4db4216b2811c6))
+
 ## [1.1.0](https://github.com/briancaffey/nvidia-nim-kit/compare/v1.0.0...v1.1.0) (2025-09-18)
 
 
