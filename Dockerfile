@@ -21,8 +21,9 @@ RUN useradd --create-home --shell /bin/bash app
 # Set working directory
 WORKDIR /app
 
-# Copy dependency files
-COPY pyproject.toml README.md LICENSE ./
+# Copy dependency files and source code
+COPY pyproject.toml LICENSE ./
+COPY nimkit/ ./nimkit/
 
 # Install uv and create virtual environment, then install dependencies
 RUN pip install uv && \
@@ -30,9 +31,6 @@ RUN pip install uv && \
     . .venv/bin/activate && \
     uv pip install -e . && \
     uv pip install -e ".[dev]"
-
-# Copy source code
-COPY nimkit/ ./nimkit/
 
 # Change ownership to app user
 RUN chown -R app:app /app

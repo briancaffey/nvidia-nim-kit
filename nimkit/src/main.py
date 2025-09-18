@@ -1,10 +1,16 @@
 """Main FastAPI application for NVIDIA NIM Kit."""
 
+import logging
 from datetime import datetime
 from typing import Dict, Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from nimkit.src.tasks import debug_task
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Create FastAPI app
 app = FastAPI(
@@ -41,6 +47,15 @@ async def health_check() -> Dict[str, Any]:
         "version": "0.1.0",
         "service": "nvidia-nim-kit",
     }
+
+
+@app.post("/api/tasks/debug")
+async def trigger_debug_task() -> Dict[str, str]:
+    """Trigger the debug Celery task."""
+    logger.info("Triggering debug task...")
+    task = debug_task.apply_async(queue="nimkit_tasks")
+    logger.info(f"Debug task queued with ID: {task.id}")
+    return {"task_id": task.id, "status": "Task queued successfully"}
 
 
 if __name__ == "__main__":

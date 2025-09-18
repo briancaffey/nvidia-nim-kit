@@ -6,7 +6,125 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PATH=/app/.venv/bin:$PATH
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - ./nimkit:/app/nimkit
+      - /app/.venv
+    command: /app/.venv/bin/python -m uvicorn nimkit.src.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - nimkit-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: nimkit-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - nimkit-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Celery worker
+  celery-worker:
+    build: .
+    container_name: nimkit-celery-worker
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PATH=/app/.venv/bin:$PATH
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CELERY_ALWAYS_EAGER=false
+      - CELERY_WORKER_CONCURRENCY=1
+      - CELERY_WORKER_MAX_TASKS_PER_CHILD=1000
+      - CELERY_TASK_SOFT_TIME_LIMIT=300
+      - CELERY_TASK_TIME_LIMIT=600
     volumes:
       - .:/app
       - /app/.venv
-    command: python -m uvicorn nimkit.src.main:app --host 0.0.0.0 --port 8000 --reload
+    command: ["celery", "-A", "nimkit.src.celery_app:celery_app", "worker", "--loglevel=info", "--queues=nimkit_tasks", "--events"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - nimkit-network
+    healthcheck:
+      test: ["CMD", "celery", "-A", "nimkit.src.celery_app:celery_app", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Celery Beat
+  celery-beat:
+    build: .
+    container_name: nimkit-celery-beat
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PATH=/app/.venv/bin:$PATH
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - PIDFILE=/tmp/celerybeat.pid
+    volumes:
+      - .:/app
+      - /app/.venv
+    command: ["celery", "-A", "nimkit.src.celery_app:celery_app", "beat", "--loglevel=info"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - nimkit-network
+    healthcheck:
+      test: ["CMD", "celery", "-A", "nimkit.src.celery_app:celery_app", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Flower monitoring
+  flower:
+    image: mher/flower:2.0.1
+    container_name: nimkit-flower
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - FLOWER_PORT=5555
+      - FLOWER_BROKER_API=redis://redis:6379/0
+      - FLOWER_RESULT_BACKEND=redis://redis:6379/0
+      - FLOWER_BROKER_API_REDIS_HOST=redis
+      - FLOWER_BROKER_API_REDIS_PORT=6379
+    depends_on:
+      redis:
+        condition: service_healthy
+      celery-worker:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - nimkit-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5555/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  nimkit-network:
+    driver: bridge
+
+volumes:
+  redis-data:
