@@ -20,6 +20,10 @@
         <Icon name="lucide:pen-tool" class="h-4 w-4" />
         <span>New Completion</span>
       </NuxtLink>
+      <NuxtLink to="/llm/metrics" class="inline-flex items-center space-x-2 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md transition-colors cursor-pointer">
+        <Icon name="lucide:bar-chart-3" class="h-4 w-4" />
+        <span>Metrics Dashboard</span>
+      </NuxtLink>
     </div>
 
     <!-- Success Alert -->
@@ -59,6 +63,10 @@
         <NuxtLink to="/llm/completion" class="inline-flex items-center space-x-2 px-3 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md transition-colors cursor-pointer text-sm">
           <Icon name="lucide:pen-tool" class="h-4 w-4" />
           <span>New Completion</span>
+        </NuxtLink>
+        <NuxtLink to="/llm/metrics" class="inline-flex items-center space-x-2 px-3 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md transition-colors cursor-pointer text-sm">
+          <Icon name="lucide:bar-chart-3" class="h-4 w-4" />
+          <span>View Metrics</span>
         </NuxtLink>
       </div>
     </div>

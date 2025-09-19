@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from nimkit.src.tasks import debug_task
 from nimkit.src.api.llm.health import router as health_router
 from nimkit.src.api.llm.inference import router as inference_router
+from nimkit.src.api.llm.metrics_api import router as metrics_router
 from nimkit.src.api.config.routes import router as nims_router
 
 # Set up logging
@@ -44,6 +45,9 @@ app.include_router(health_router)
 
 # Include LLM inference routes
 app.include_router(inference_router)
+
+# Include metrics routes
+app.include_router(metrics_router)
 
 # Include NIM configuration routes
 app.include_router(nims_router)
