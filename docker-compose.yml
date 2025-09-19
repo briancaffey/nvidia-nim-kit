@@ -8,6 +8,7 @@ services:
       - PATH=/app/.venv/bin:$PATH
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./nimkit:/app/nimkit
       - /app/.venv
@@ -19,10 +20,11 @@ services:
       - nimkit-network
 
   redis:
-    image: redis:7-alpine
-    container_name: nimkit-redis
+    image: redis/redis-stack:latest
+    container_name: nimkit-redis-stack
     ports:
       - "6379:6379"
+      - "8001:8001"
     volumes:
       - redis-data:/data
     restart: unless-stopped
@@ -44,6 +46,7 @@ services:
       - PATH=/app/.venv/bin:$PATH
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - REDIS_URL=redis://redis:6379/0
       - CELERY_ALWAYS_EAGER=false
       - CELERY_WORKER_CONCURRENCY=1
       - CELERY_WORKER_MAX_TASKS_PER_CHILD=1000
@@ -75,6 +78,7 @@ services:
       - PATH=/app/.venv/bin:$PATH
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - REDIS_URL=redis://redis:6379/0
       - PIDFILE=/tmp/celerybeat.pid
     volumes:
       - .:/app

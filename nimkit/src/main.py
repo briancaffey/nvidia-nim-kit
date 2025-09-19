@@ -8,8 +8,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from nimkit.src.tasks import debug_task
+from nimkit.src.api.llm.health import router as health_router
+from nimkit.src.api.llm.inference import router as inference_router
+from nimkit.src.api.config.routes import router as nims_router
 
 # Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(), logging.FileHandler("nimkit.log")],
+)
 logger = logging.getLogger(__name__)
 
 # Create FastAPI app
@@ -30,6 +38,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include health routes
+app.include_router(health_router)
+
+# Include LLM inference routes
+app.include_router(inference_router)
+
+# Include NIM configuration routes
+app.include_router(nims_router)
 
 
 @app.get("/")
