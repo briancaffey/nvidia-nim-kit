@@ -6,6 +6,7 @@ from typing import Dict, Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from nimkit.src.tasks import debug_task
 from nimkit.src.api.llm.health import router as health_router
@@ -51,6 +52,9 @@ app.include_router(metrics_router)
 
 # Include NIM configuration routes
 app.include_router(nims_router)
+
+# Mount static files for NIM images
+app.mount("/static/nims", StaticFiles(directory="nimkit/static/nims"), name="nims_images")
 
 
 @app.get("/")

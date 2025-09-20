@@ -1,6 +1,8 @@
 """API routes for NIM configuration."""
 
 import logging
+import yaml
+from pathlib import Path
 from typing import Dict, Any, List
 from fastapi import APIRouter, HTTPException, status
 
@@ -9,6 +11,71 @@ from .nims import NIMData, NIMDataUpdate, nim_manager
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/nims", tags=["nims"])
+
+
+@router.get("/catalog", response_model=List[Dict[str, Any]])
+async def get_nims_catalog() -> List[Dict[str, Any]]:
+    """Get the NIMs catalog from nims.yml file."""
+    try:
+        # Get the path to nims.yml relative to this file
+        current_dir = Path(__file__).parent
+        nims_file = current_dir.parent / "nims.yml"
+
+        if not nims_file.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="NIMs catalog file not found"
+            )
+
+        with open(nims_file, 'r', encoding='utf-8') as f:
+            nims_data = yaml.safe_load(f)
+
+        return nims_data
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error reading NIMs catalog: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}",
+        )
+
+
+@router.get("/catalog/{nim_id:path}", response_model=Dict[str, Any])
+async def get_nim_details(nim_id: str) -> Dict[str, Any]:
+    """Get details for a specific NIM by ID."""
+    try:
+        # Get the path to nims.yml relative to this file
+        current_dir = Path(__file__).parent
+        nims_file = current_dir.parent / "nims.yml"
+
+        if not nims_file.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="NIMs catalog file not found"
+            )
+
+        with open(nims_file, 'r', encoding='utf-8') as f:
+            nims_data = yaml.safe_load(f)
+
+        # Find the NIM with the matching ID
+        for nim in nims_data:
+            if nim.get('id') == nim_id:
+                return nim
+
+        # If not found, return 404
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"NIM with ID '{nim_id}' not found"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error reading NIM details for {nim_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}",
+        )
 
 
 @router.get("/", response_model=Dict[str, Any])
