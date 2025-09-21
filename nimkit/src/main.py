@@ -13,10 +13,13 @@ from nimkit.src.api.llm.health import router as health_router
 from nimkit.src.api.llm.inference import router as inference_router
 from nimkit.src.api.llm.metrics_api import router as metrics_router
 from nimkit.src.api.config.routes import router as nims_router
+from nimkit.src.api.nims_inference import router as nims_inference_router
 
 # Set up logging
+import os
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, log_level, logging.INFO),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler(), logging.FileHandler("nimkit.log")],
 )
@@ -52,6 +55,9 @@ app.include_router(metrics_router)
 
 # Include NIM configuration routes
 app.include_router(nims_router)
+
+# Include NIM inference routes
+app.include_router(nims_inference_router)
 
 # Mount static files for NIM images
 app.mount("/static/nims", StaticFiles(directory="nimkit/static/nims"), name="nims_images")

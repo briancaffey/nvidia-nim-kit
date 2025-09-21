@@ -21,46 +21,32 @@
     </div>
 
     <!-- NIM Details -->
-    <div v-else-if="nim" class="max-w-4xl mx-auto">
-      <!-- Breadcrumb -->
-      <nav class="mb-8">
-        <ol class="flex items-center space-x-2 text-sm text-muted-foreground">
-          <li>
-            <NuxtLink to="/" class="hover:text-primary">Home</NuxtLink>
-          </li>
-          <li class="flex items-center">
-            <Icon name="lucide:chevron-right" class="h-4 w-4 mx-2" />
-            <NuxtLink to="/nims" class="hover:text-primary">NIMs</NuxtLink>
-          </li>
-          <li class="flex items-center">
-            <Icon name="lucide:chevron-right" class="h-4 w-4 mx-2" />
-            <span class="text-foreground">{{ publisher }}</span>
-          </li>
-          <li class="flex items-center">
-            <Icon name="lucide:chevron-right" class="h-4 w-4 mx-2" />
-            <span class="text-foreground">{{ modelName }}</span>
-          </li>
-        </ol>
-      </nav>
-
+    <div v-else-if="nim">
       <!-- Banner Section -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 pl-6 py-0 rounded-lg border bg-background dark:bg-background border-border/50 dark:border-border/30">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 ml-4 mr-0 rounded-lg border bg-background dark:bg-background border-border/50 dark:border-border/30 h-64 overflow-hidden">
         <!-- Text Content -->
-        <div class="flex flex-col justify-center">
+        <div class="flex flex-col justify-center p-6">
           <!-- Publisher/Namespace -->
           <div class="text-sm text-muted-foreground mb-2">
-            {{ publisher }}
+            {{ provider }}
           </div>
 
           <!-- Title -->
           <h1 class="text-3xl font-bold tracking-tight mb-3">
-            {{ modelName }}
+            {{ name }}
           </h1>
 
           <!-- Description -->
           <p class="text-base text-muted-foreground mb-4 leading-relaxed">
             {{ nim.description }}
           </p>
+
+          <!-- NIM Instance Badge -->
+          <div v-if="nimConfig" class="mb-4">
+            <Badge class="text-xs bg-muted text-muted-foreground border border-border">
+              NIM Instance: {{ nimConfig.host }}:{{ nimConfig.port }}
+            </Badge>
+          </div>
 
           <!-- Tags -->
           <div class="flex flex-wrap gap-2">
@@ -75,11 +61,11 @@
         </div>
 
         <!-- Image Section -->
-        <div class="relative h-64 lg:h-full bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg overflow-hidden">
+        <div class="relative h-full bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg overflow-hidden">
           <NuxtImg
             :src="imageUrl"
             :alt="nim.id"
-            class="w-full h-full object-cover"
+            class="w-full h-full object-cover object-center"
             loading="eager"
           />
           <!-- Fade effect on left side for dark/light mode -->
@@ -87,38 +73,18 @@
         </div>
       </div>
 
-      <!-- Additional Details -->
-      <Card class="p-6">
-        <CardHeader>
-          <CardTitle>Technical Details</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h4 class="text-sm font-semibold text-muted-foreground mb-1">Type</h4>
-              <p class="text-sm">{{ nim.type }}</p>
-            </div>
-            <div v-if="nim.release_date">
-              <h4 class="text-sm font-semibold text-muted-foreground mb-1">Release Date</h4>
-              <p class="text-sm">{{ formatDate(nim.release_date) }}</p>
-            </div>
-            <div v-if="nim.model">
-              <h4 class="text-sm font-semibold text-muted-foreground mb-1">Model</h4>
-              <p class="text-sm font-mono">{{ nim.model }}</p>
-            </div>
-            <div v-if="nim.invoke_url">
-              <h4 class="text-sm font-semibold text-muted-foreground mb-1">Invoke URL</h4>
-              <p class="text-sm font-mono break-all">{{ nim.invoke_url }}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <!-- Flux Schnell Generation Component -->
+      <div v-if="isFluxSchnell" class="ml-4 mr-0">
+        <FluxSchnellGeneration />
+      </div>
     </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import FluxSchnellGeneration from '~/components/FluxSchnellGeneration.vue'
+
 interface NIM {
   id: string
   url: string
@@ -134,18 +100,24 @@ interface NIM {
 const route = useRoute()
 const config = useRuntimeConfig()
 const nim = ref<NIM | null>(null)
+const nimConfig = ref<{host: string, port: number} | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-// Extract publisher and model name from the route
-const nimId = computed(() => route.params.id as string)
-const publisher = computed(() => nimId.value.split('/')[0])
-const modelName = computed(() => nimId.value.split('/')[1])
+// Extract provider and name from the route
+const provider = computed(() => route.params.provider as string)
+const name = computed(() => route.params.name as string)
+const nimId = computed(() => `${provider.value}/${name.value}`)
 
 // Construct image URL
 const imageUrl = computed(() => {
   if (!nim.value) return ''
   return `${config.public.apiBase}/static/nims/${nim.value.img}`
+})
+
+// Check if this is the Flux Schnell model
+const isFluxSchnell = computed(() => {
+  return nimId.value === 'black-forest-labs/flux_1-schnell'
 })
 
 const fetchNimDetails = async () => {
@@ -165,19 +137,15 @@ const fetchNimDetails = async () => {
   }
 }
 
-const openUrl = (url: string) => {
-  window.open(url, '_blank', 'noopener,noreferrer')
-}
-
-const copyInvokeUrl = async () => {
-  if (nim.value?.invoke_url) {
-    try {
-      await navigator.clipboard.writeText(nim.value.invoke_url)
-      // You could add a toast notification here
-      console.log('Invoke URL copied to clipboard')
-    } catch (err) {
-      console.error('Failed to copy invoke URL:', err)
-    }
+const fetchNimConfig = async () => {
+  try {
+    console.log('Fetching NIM config for:', nimId.value)
+    const response = await $fetch<{host: string, port: number}>(`${config.public.apiBase}/api/nims/config/${encodeURIComponent(nimId.value)}`)
+    console.log('Received NIM config:', response)
+    nimConfig.value = response
+  } catch (err) {
+    console.error('Failed to fetch NIM config:', err)
+    // Don't set error here as this is optional information
   }
 }
 
@@ -197,6 +165,7 @@ const formatDate = (dateString: string) => {
 // Fetch NIM details on component mount
 onMounted(() => {
   fetchNimDetails()
+  fetchNimConfig()
 })
 
 // Set page metadata

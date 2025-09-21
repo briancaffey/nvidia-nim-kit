@@ -24,7 +24,9 @@ class InferenceRequest(HashModel):
         default="chat", description="Request type: chat, completion"
     )
     nim_id: str = Field(default="", description="NIM ID used for this request")
+    # deprecate
     model: str = Field(default="", description="Model name used")
+    # deprecate
     stream: str = Field(
         default="false", description="Whether this was a streaming request"
     )
@@ -39,6 +41,10 @@ class InferenceRequest(HashModel):
     status: str = Field(
         default="pending", description="Request status: pending, completed, error"
     )
+    # TODO: add field for inference duration in ms
+    # TODO: add field for generated image file path
+    # TODO: add field for generated 3D model file path
+    # TODO: add field for generated audio file path
 
     class Meta:
         database = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))

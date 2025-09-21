@@ -1,5 +1,5 @@
 <template>
-  <NuxtLink :to="`/nims/${encodeURIComponent(nim.id)}`" class="block">
+  <NuxtLink :to="`/nims/${publisher}/${modelName}`" class="block">
     <Card class="group hover:shadow-lg transition-all duration-200 overflow-hidden cursor-pointer !p-0 !gap-0">
       <!-- Image Section -->
       <div class="relative h-48 bg-gradient-to-br from-primary/20 to-primary/5 overflow-hidden">

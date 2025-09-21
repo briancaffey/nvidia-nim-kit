@@ -125,6 +125,32 @@ async def set_nim_data(nim_id: str, nim_data: NIMDataUpdate) -> Dict[str, Any]:
         )
 
 
+@router.get("/config/{nim_id:path}", response_model=Dict[str, Any])
+async def get_nim_config(nim_id: str) -> Dict[str, Any]:
+    """Get NIM configuration (host and port) for a given NIM ID."""
+    try:
+        nim_data = nim_manager.get_nim_data(nim_id)
+
+        if nim_data:
+            return {
+                "host": nim_data.host,
+                "port": nim_data.port,
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"NIM configuration not found for {nim_id}",
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting NIM config for {nim_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}",
+        )
+
+
 @router.get("/{nim_id:path}", response_model=Dict[str, Any])
 async def get_nim_data(nim_id: str) -> Dict[str, Any]:
     """Get NIM data for a given NIM ID."""
