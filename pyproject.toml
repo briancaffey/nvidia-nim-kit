@@ -34,6 +34,10 @@ dependencies = [
     "python-dateutil>=2.8.0",
     "pydantic>=2.0.0",
     "pyyaml>=6.0.0",
+    "opencv-python-headless>=4.10,<5",
+    "torch>=2.0.0",
+    "numpy>=1.24.0",
+    "timm==1.0.20",
 ]
 
 [project.optional-dependencies]

@@ -23,7 +23,7 @@
     <!-- NIM Details -->
     <div v-else-if="nim">
       <!-- Banner Section -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 ml-4 mr-0 rounded-lg border bg-background dark:bg-background border-border/50 dark:border-border/30 h-64 overflow-hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 rounded-lg border bg-background dark:bg-background border-border/50 dark:border-border/30 h-64 overflow-hidden">
         <!-- Text Content -->
         <div class="flex flex-col justify-center p-6">
           <!-- Publisher/Namespace -->
@@ -53,7 +53,7 @@
             <Badge
               v-for="tag in nim.tags"
               :key="tag"
-              class="text-sm bg-transparent text-teal-400 border border-teal-400 rounded-full hover:bg-teal-400/10"
+              class="text-sm bg-transparent text-teal-400 border border-teal-400 rounded-full hover:bg-teal-400/10 cursor-pointer"
             >
               {{ tag }}
             </Badge>
@@ -73,9 +73,9 @@
         </div>
       </div>
 
-      <!-- Flux Schnell Generation Component -->
-      <div v-if="isFluxSchnell" class="ml-4 mr-0">
-        <FluxSchnellGeneration />
+      <!-- Flux Generation Component -->
+      <div v-if="isFluxModel">
+        <FluxSchnellGeneration :nim-id="nimId" />
       </div>
     </div>
     </div>
@@ -115,9 +115,10 @@ const imageUrl = computed(() => {
   return `${config.public.apiBase}/static/nims/${nim.value.img}`
 })
 
-// Check if this is the Flux Schnell model
-const isFluxSchnell = computed(() => {
-  return nimId.value === 'black-forest-labs/flux_1-schnell'
+// Check if this is a Flux model
+const isFluxModel = computed(() => {
+  return nimId.value === 'black-forest-labs/flux_1-schnell' ||
+         nimId.value === 'black-forest-labs/flux_1-dev'
 })
 
 const fetchNimDetails = async () => {

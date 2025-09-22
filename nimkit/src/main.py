@@ -14,6 +14,8 @@ from nimkit.src.api.llm.inference import router as inference_router
 from nimkit.src.api.llm.metrics_api import router as metrics_router
 from nimkit.src.api.config.routes import router as nims_router
 from nimkit.src.api.nims_inference import router as nims_inference_router
+from nimkit.src.api.gallery import router as gallery_router
+from nimkit.src.api.image_conversion import router as image_conversion_router
 
 # Set up logging
 import os
@@ -58,6 +60,12 @@ app.include_router(nims_router)
 
 # Include NIM inference routes
 app.include_router(nims_inference_router)
+
+# Include gallery routes
+app.include_router(gallery_router)
+
+# Include image conversion routes
+app.include_router(image_conversion_router)
 
 # Mount static files for NIM images
 app.mount("/static/nims", StaticFiles(directory="nimkit/static/nims"), name="nims_images")

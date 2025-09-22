@@ -1,10 +1,22 @@
 <template>
-  <div style="background-color: orange; padding: 15px; margin: 15px; border: 4px solid blue;">
-    <h2 style="color: white; font-size: 20px;">THEME TOGGLE COMPONENT</h2>
-    <button
-      style="background-color: purple; color: white; padding: 25px; border: 2px solid white; cursor: pointer; font-size: 20px; font-weight: bold; min-width: 200px; min-height: 80px;"
-    >
-      CLICK TO TOGGLE THEME
-    </button>
-  </div>
+  <button
+    @click="toggleTheme"
+    class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+    style="cursor: pointer;"
+  >
+    <Icon
+      :name="colorMode.value === 'dark' ? 'lucide:sun' : 'lucide:moon'"
+      class="h-4 w-4 transition-transform duration-300 hover:scale-110"
+      :class="colorMode.value === 'dark' ? 'rotate-180' : 'rotate-0'"
+    />
+  </button>
 </template>
+
+<script setup lang="ts">
+// @ts-ignore - useColorMode is auto-imported by @nuxtjs/color-mode
+const colorMode = useColorMode()
+
+const toggleTheme = () => {
+  colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
+}
+</script>

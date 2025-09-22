@@ -28,11 +28,11 @@ celery_app.conf.update(
     task_send_sent_event=True,
     # Beat schedule for periodic tasks
     beat_schedule={
-        "process-metrics-every-5s": {
-            "task": "process_metrics",
-            "schedule": 5.0,  # Every 5 seconds
-            "options": {"queue": "nimkit_tasks"},
-        },
+        # "process-metrics-every-5s": {
+        #     "task": "process_metrics",
+        #     "schedule": 5.0,  # Every 5 seconds
+        #     "options": {"queue": "nimkit_tasks"},
+        # },
     },
 )
 

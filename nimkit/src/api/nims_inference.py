@@ -7,7 +7,8 @@ from datetime import datetime
 from typing import Dict, Any
 
 from fastapi import APIRouter, HTTPException, Depends, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+from typing import ClassVar
 
 from .llm.models import InferenceRequest
 from .utils import validate_nim_exists
@@ -30,6 +31,23 @@ class ImageGenerationRequest(BaseModel):
     samples: int = 1
     seed: int = 0
     steps: int = 4
+
+    # Supported dimensions for Flux models
+    SUPPORTED_DIMENSIONS: ClassVar[list[int]] = [672, 688, 720, 752, 800, 832, 880, 944, 1024, 1104, 1184, 1248, 1328, 1392, 1456, 1504, 1568]
+
+    @field_validator('height', 'width')
+    @classmethod
+    def validate_dimensions(cls, v):
+        if v not in cls.SUPPORTED_DIMENSIONS:
+            raise ValueError(f'Dimension {v} is not supported. Supported dimensions are: {cls.SUPPORTED_DIMENSIONS}')
+        return v
+
+    @field_validator('mode')
+    @classmethod
+    def validate_mode(cls, v):
+        if v not in ['base', 'canny', 'depth']:
+            raise ValueError('Mode must be one of: base, canny, depth')
+        return v
 
 
 @router.post("/{publisher}/{model_name}")
