@@ -299,7 +299,9 @@ async def perform_3d_generation_inference(
         logger.debug(f"Request headers: {headers}")
 
         # Log the exact payload being sent
-        logger.info(f"Sending payload to Trellis NIM: {json.dumps(request_data, indent=2)}")
+        logger.info(
+            f"Sending payload to Trellis NIM: {json.dumps(request_data, indent=2)}"
+        )
 
         # Make the request to the NIM
         logger.debug("Making POST request to NIM")

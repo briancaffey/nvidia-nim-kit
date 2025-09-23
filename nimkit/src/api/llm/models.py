@@ -92,3 +92,63 @@ class InferenceRequest(HashModel):
     def set_stream(self, value: bool) -> None:
         """Set stream from boolean."""
         self.stream = str(value).lower()
+
+    @classmethod
+    def delete_by_request_id(cls, request_id: str) -> bool:
+        """
+        Delete an InferenceRequest by its request_id.
+
+        Args:
+            request_id: The request ID to delete
+
+        Returns:
+            bool: True if deletion was successful, False otherwise
+        """
+        try:
+            # Use direct Redis query since RedisOM find() seems to have issues
+            # This is more reliable than the find() method
+            redis_client = cls.Meta.database
+
+            # Get all InferenceRequest keys
+            pattern = ":nimkit.src.api.llm.models.InferenceRequest:*"
+            keys = redis_client.keys(pattern)
+            # Filter out the index key - handle both bytes and string keys
+            filtered_keys = []
+            for key in keys:
+                if isinstance(key, bytes):
+                    if not key.endswith(b":index:hash"):
+                        filtered_keys.append(key)
+                else:
+                    if not key.endswith(":index:hash"):
+                        filtered_keys.append(key)
+            keys = filtered_keys
+
+            # Find the key with matching request_id
+            target_key = None
+            for key in keys:
+                try:
+                    # Get the request_id field from the hash
+                    stored_request_id = redis_client.hget(key, "request_id")
+                    if (
+                        stored_request_id
+                        and stored_request_id.decode("utf-8") == request_id
+                    ):
+                        target_key = key
+                        break
+                except Exception:
+                    continue
+
+            if not target_key:
+                return False
+
+            # Delete the key from Redis
+            result = redis_client.delete(target_key)
+            return bool(result)
+
+        except Exception as e:
+            # Log the error for debugging
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to delete InferenceRequest {request_id}: {e}")
+            return False

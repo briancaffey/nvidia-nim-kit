@@ -5,7 +5,6 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
-      - PATH=/app/.venv/bin:$PATH
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - REDIS_URL=redis://redis:6379/0
@@ -14,6 +13,7 @@ services:
     volumes:
       - ./nimkit:/app/nimkit
       - /app/.venv
+      - ./logs:/app/logs
     command: /app/.venv/bin/python -m uvicorn nimkit.src.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
       redis:
@@ -45,7 +45,6 @@ services:
     container_name: nimkit-celery-worker
     environment:
       - PYTHONUNBUFFERED=1
-      - PATH=/app/.venv/bin:$PATH
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - REDIS_URL=redis://redis:6379/0
@@ -55,8 +54,9 @@ services:
       - CELERY_TASK_SOFT_TIME_LIMIT=300
       - CELERY_TASK_TIME_LIMIT=600
     volumes:
-      - .:/app
+      - ./nimkit:/app/nimkit
       - /app/.venv
+      - ./logs:/app/logs
     command: ["celery", "-A", "nimkit.src.celery_app:celery_app", "worker", "--loglevel=info", "--queues=nimkit_tasks", "--events"]
     depends_on:
       redis:
@@ -77,15 +77,16 @@ services:
     container_name: nimkit-celery-beat
     environment:
       - PYTHONUNBUFFERED=1
-      - PATH=/app/.venv/bin:$PATH
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - REDIS_URL=redis://redis:6379/0
       - PIDFILE=/tmp/celerybeat.pid
     volumes:
-      - .:/app
+      - ./nimkit:/app/nimkit
       - /app/.venv
-    command: ["celery", "-A", "nimkit.src.celery_app:celery_app", "beat", "--loglevel=info"]
+      - ./logs:/app/logs
+      - ./celery-data:/app/celery-data
+    command: ["celery", "-A", "nimkit.src.celery_app:celery_app", "beat", "--loglevel=info", "--pidfile=/app/celery-data/celerybeat.pid", "--schedule=/app/celery-data/celerybeat-schedule"]
     depends_on:
       redis:
         condition: service_healthy

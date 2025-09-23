@@ -578,21 +578,55 @@ async def completion(
 async def get_inference_request(request_id: str) -> Dict[str, Any]:
     """Get inference request by ID."""
     try:
-        # Find the request by request_id since RedisOM uses its own pk system
-        all_requests = list(InferenceRequest.all_pks())
-        inference_request = None
+        # Use direct Redis query since RedisOM find() seems to have issues
+        redis_client = InferenceRequest.Meta.database
 
-        for pk in all_requests:
+        # Get all InferenceRequest keys
+        pattern = ":nimkit.src.api.llm.models.InferenceRequest:*"
+        keys = redis_client.keys(pattern)
+        # Filter out the index key - handle both bytes and string keys
+        filtered_keys = []
+        for key in keys:
+            if isinstance(key, bytes):
+                if not key.endswith(b":index:hash"):
+                    filtered_keys.append(key)
+            else:
+                if not key.endswith(":index:hash"):
+                    filtered_keys.append(key)
+        keys = filtered_keys
+
+        # Find the key with matching request_id
+        target_key = None
+        for key in keys:
             try:
-                req = InferenceRequest.get(pk)
-                if req.request_id == request_id:
-                    inference_request = req
+                # Get the request_id field from the hash
+                stored_request_id = redis_client.hget(key, "request_id")
+                if (
+                    stored_request_id
+                    and stored_request_id.decode("utf-8") == request_id
+                ):
+                    target_key = key
                     break
             except Exception:
                 continue
 
-        if not inference_request:
+        if not target_key:
             raise HTTPException(status_code=404, detail="Inference request not found")
+
+        # Get the hash data and create InferenceRequest object
+        hash_data = redis_client.hgetall(target_key)
+        if not hash_data:
+            raise HTTPException(status_code=404, detail="Inference request not found")
+
+        # Convert bytes to strings
+        data = {
+            k.decode("utf-8") if isinstance(k, bytes) else k: (
+                v.decode("utf-8") if isinstance(v, bytes) else v
+            )
+            for k, v in hash_data.items()
+        }
+
+        inference_request = InferenceRequest(**data)
 
         return {
             "id": inference_request.request_id,
@@ -748,26 +782,11 @@ async def list_inference_requests(
 async def delete_inference_request(request_id: str) -> Dict[str, Any]:
     """Delete inference request by ID."""
     try:
-        # Find the request by request_id since RedisOM uses its own pk system
-        all_requests = list(InferenceRequest.all_pks())
-        inference_request = None
-        request_pk = None
+        # Use the efficient model method to delete the request
+        success = InferenceRequest.delete_by_request_id(request_id)
 
-        for pk in all_requests:
-            try:
-                req = InferenceRequest.get(pk)
-                if req.request_id == request_id:
-                    inference_request = req
-                    request_pk = pk
-                    break
-            except Exception:
-                continue
-
-        if not inference_request:
+        if not success:
             raise HTTPException(status_code=404, detail="Inference request not found")
-
-        # Delete the request from Redis
-        inference_request.delete(request_pk)
 
         logger.info(f"Successfully deleted inference request {request_id}")
 

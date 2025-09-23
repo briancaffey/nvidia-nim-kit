@@ -121,6 +121,7 @@
           v-for="request in inferenceRequests"
           :key="request.request_id"
           :request="request"
+          @deleted="handleRequestDeleted"
         />
       </div>
 
@@ -314,6 +315,12 @@ const clearFilters = () => {
   searchTerm.value = ''
   selectedNimIds.value = []
   pagination.setPage(1)
+  loadInferenceRequests()
+}
+
+const handleRequestDeleted = (requestId: string) => {
+  console.log('Request deleted:', requestId)
+  // Reload the gallery data to reflect the deletion
   loadInferenceRequests()
 }
 

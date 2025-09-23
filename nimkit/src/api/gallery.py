@@ -203,3 +203,45 @@ async def get_inference_requests(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch inference requests: {str(e)}",
         )
+
+
+@router.delete("/inference-requests/{request_id}")
+async def delete_inference_request(request_id: str) -> Dict[str, Any]:
+    """
+    Delete an inference request by its request_id.
+
+    Args:
+        request_id: The request ID to delete
+
+    Returns:
+        Dictionary containing success status and message
+    """
+    logger.info(f"Gallery delete request for request_id: {request_id}")
+
+    try:
+        # Use the clean model method to delete the request
+        logger.debug(f"Attempting to delete inference request {request_id}")
+        success = InferenceRequest.delete_by_request_id(request_id)
+
+        if success:
+            logger.info(f"Successfully deleted inference request {request_id}")
+            return {
+                "status": "success",
+                "message": "Inference request deleted successfully",
+                "request_id": request_id,
+            }
+        else:
+            logger.warning(f"Inference request {request_id} not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Inference request {request_id} not found",
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting inference request {request_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete inference request: {str(e)}",
+        )

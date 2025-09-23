@@ -7,11 +7,37 @@
             {{ request.nim_id }}
           </CardTitle>
         </div>
-        <!-- Green checkmark for completed status -->
-        <div v-if="request.status === 'completed'" class="text-green-500">
+        <!-- Green checkmark for completed status with delete button on hover -->
+        <div v-if="request.status === 'completed'" class="text-green-500 group relative">
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
           </svg>
+          <!-- Delete button that appears on hover -->
+          <button
+            @click="handleDelete"
+            :disabled="isDeleting"
+            class="absolute -top-1 -right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 disabled:opacity-50"
+            title="Delete this request"
+          >
+            <svg
+              v-if="!isDeleting"
+              class="w-3 h-3"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path fill-rule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clip-rule="evenodd" />
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+            <svg
+              v-else
+              class="w-3 h-3 animate-spin"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </button>
         </div>
         <Badge v-else :variant="statusVariant">
           {{ request.status }}
@@ -25,6 +51,12 @@
         <!-- Schnell (Image Generation) -->
         <SchnellCard
           v-if="isSchnellNim"
+          :request="request"
+        />
+
+        <!-- Trellis (3D Model Generation) -->
+        <TrellisCard
+          v-else-if="isTrellisNim"
           :request="request"
         />
 
@@ -57,10 +89,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import SchnellCard from './SchnellCard.vue'
+import TrellisCard from './TrellisCard.vue'
 
 // Props
 interface Props {
@@ -82,11 +115,25 @@ interface Props {
 
 const props = defineProps<Props>()
 
+// Emits
+const emit = defineEmits<{
+  deleted: [requestId: string]
+}>()
+
+// Reactive state
+const isDeleting = ref(false)
+
 // Computed properties
 const isSchnellNim = computed(() => {
   return props.request.nim_id.includes('flux_1-schnell') ||
          props.request.nim_id.includes('flux') ||
          props.request.type === 'IMAGE_GENERATION'
+})
+
+const isTrellisNim = computed(() => {
+  return props.request.nim_id.includes('trellis') ||
+         props.request.type === '3D_GENERATION' ||
+         props.request.request_type === '3d_generation'
 })
 
 const statusVariant = computed(() => {
@@ -108,6 +155,37 @@ const formatJson = (data: any) => {
     return JSON.stringify(data, null, 2)
   } catch {
     return String(data)
+  }
+}
+
+const handleDelete = async () => {
+  if (isDeleting.value) return
+
+  isDeleting.value = true
+
+  try {
+    const config = useRuntimeConfig()
+    const apiBase = config.public.apiBase
+
+    const response = await fetch(`${apiBase}/api/gallery/inference-requests/${props.request.request_id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete request: ${response.statusText}`)
+    }
+
+    // Emit the deleted event to parent component
+    emit('deleted', props.request.request_id)
+
+  } catch (error) {
+    console.error('Error deleting inference request:', error)
+    // You could add a toast notification here if you have one
+  } finally {
+    isDeleting.value = false
   }
 }
 </script>

@@ -25,7 +25,7 @@ log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
     level=getattr(logging, log_level, logging.INFO),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(), logging.FileHandler("nimkit.log")],
+    handlers=[logging.StreamHandler(), logging.FileHandler("/app/logs/nimkit.log")],
 )
 logger = logging.getLogger(__name__)
 

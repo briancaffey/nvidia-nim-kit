@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for nvidia-nim-kit backend
-FROM python:3.11-slim as base
+FROM python:3.11-slim AS base
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -26,19 +26,23 @@ RUN useradd --create-home --shell /bin/bash app
 # Set working directory
 WORKDIR /app
 
-# Copy dependency files and source code
+# Copy dependency files first (for better caching)
 COPY pyproject.toml LICENSE ./
-COPY nimkit/ ./nimkit/
 
-# Install uv and create virtual environment, then install dependencies
+# Install uv and create virtual environment
 RUN pip install uv && \
     uv venv && \
     . .venv/bin/activate && \
     uv pip install -e . && \
     uv pip install -e ".[dev]"
 
-# Change ownership to app user
-RUN chown -R app:app /app
+# Copy source code (excluding media files via .dockerignore)
+COPY --chown=app:app nimkit/ ./nimkit/
+
+# Create directories for logs and celery with proper permissions
+RUN mkdir -p /app/logs /app/celery-data && \
+    chown -R app:app /app/logs /app/celery-data
+
 USER app
 
 # Set PATH to include virtual environment
