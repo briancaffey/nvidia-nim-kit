@@ -77,6 +77,11 @@
       <div v-if="isFluxModel">
         <FluxSchnellGeneration :nim-id="nimId" />
       </div>
+
+      <!-- Trellis Generation Component -->
+      <div v-else-if="isTrellisModel">
+        <TrellisGeneration :nim-id="nimId" />
+      </div>
     </div>
     </div>
   </div>
@@ -84,6 +89,7 @@
 
 <script setup lang="ts">
 import FluxSchnellGeneration from '~/components/FluxSchnellGeneration.vue'
+import TrellisGeneration from '~/components/TrellisGeneration.vue'
 
 interface NIM {
   id: string
@@ -119,6 +125,11 @@ const imageUrl = computed(() => {
 const isFluxModel = computed(() => {
   return nimId.value === 'black-forest-labs/flux_1-schnell' ||
          nimId.value === 'black-forest-labs/flux_1-dev'
+})
+
+// Check if this is a Trellis model
+const isTrellisModel = computed(() => {
+  return nimId.value === 'microsoft/trellis'
 })
 
 const fetchNimDetails = async () => {

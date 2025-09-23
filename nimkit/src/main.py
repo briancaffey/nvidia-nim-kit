@@ -78,9 +78,10 @@ app.mount(
 )
 
 # Mount static files for 3D models
-app.mount(
-    "/models", StaticFiles(directory="nimkit/static/models"), name="models"
-)
+app.mount("/models", StaticFiles(directory="nimkit/static/models"), name="models")
+
+# Mount static files for generated media (GLB files)
+app.mount("/media", StaticFiles(directory="nimkit/media"), name="media")
 
 
 @app.get("/")

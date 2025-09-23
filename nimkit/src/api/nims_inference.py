@@ -70,6 +70,57 @@ class ImageGenerationRequest(BaseModel):
         return v
 
 
+class TrellisGenerationRequest(BaseModel):
+    """Request body for Trellis 3D model generation."""
+
+    mode: str = "text"
+    prompt: str = ""
+    image: str = None
+    ss_cfg_scale: float = 7.5
+    slat_cfg_scale: float = 3.0
+    samples: int = 1
+    no_texture: bool = False
+    seed: int = 0
+    ss_sampling_steps: int = 25
+    slat_sampling_steps: int = 25
+    output_format: str = "glb"
+
+    @field_validator("mode")
+    @classmethod
+    def validate_mode(cls, v):
+        if v not in ["text", "image"]:
+            raise ValueError("Mode must be one of: text, image")
+        return v
+
+    @field_validator("ss_cfg_scale", "slat_cfg_scale")
+    @classmethod
+    def validate_cfg_scale(cls, v):
+        if not 2.0 <= v <= 10.0:
+            raise ValueError("CFG scale must be between 2.0 and 10.0")
+        return v
+
+    @field_validator("ss_sampling_steps", "slat_sampling_steps")
+    @classmethod
+    def validate_sampling_steps(cls, v):
+        if not 10 <= v <= 50:
+            raise ValueError("Sampling steps must be between 10 and 50")
+        return v
+
+    @field_validator("seed")
+    @classmethod
+    def validate_seed(cls, v):
+        if v < 0:
+            raise ValueError("Seed must be a non-negative integer")
+        return v
+
+    @field_validator("output_format")
+    @classmethod
+    def validate_output_format(cls, v):
+        if v not in ["glb"]:
+            raise ValueError("Output format must be 'glb'")
+        return v
+
+
 @router.post("/{publisher}/{model_name}")
 async def nim_inference(
     publisher: str,
@@ -108,13 +159,34 @@ async def nim_inference(
         request_id = str(uuid.uuid4())
         logger.debug(f"Generated request ID: {request_id}")
 
+        # Determine request type based on NIM type
+        # Get NIM type from metadata (YAML) first, fallback to Redis config
+        nim_type = nim_metadata.get("type", "").lower()
+        if not nim_type:
+            # Fallback to Redis config nim_type
+            nim_type = getattr(nim_data, "nim_type", "").lower()
+
+        logger.debug(
+            f"Determined NIM type: {nim_type} (from metadata: {nim_metadata.get('type', '')}, from Redis: {getattr(nim_data, 'nim_type', '')})"
+        )
+
+        if nim_type == "image":
+            request_type = "IMAGE_GENERATION"
+            request_type_str = "image_generation"
+        elif nim_type == "3d":
+            request_type = "3D_GENERATION"
+            request_type_str = "3d_generation"
+        else:
+            request_type = "UNKNOWN"
+            request_type_str = "unknown"
+
         # Create InferenceRequest record
-        logger.debug("Creating InferenceRequest record")
+        logger.debug(f"Creating InferenceRequest record for type: {request_type}")
         inference_request = InferenceRequest(
             request_id=request_id,
             input_json="",  # Initialize as empty string
-            type="IMAGE_GENERATION",
-            request_type="image_generation",
+            type=request_type,
+            request_type=request_type_str,
             nim_id=nim_id,
             model=model_name,
             stream="false",
