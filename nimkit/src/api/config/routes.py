@@ -24,10 +24,10 @@ async def get_nims_catalog() -> List[Dict[str, Any]]:
         if not nims_file.exists():
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="NIMs catalog file not found"
+                detail="NIMs catalog file not found",
             )
 
-        with open(nims_file, 'r', encoding='utf-8') as f:
+        with open(nims_file, "r", encoding="utf-8") as f:
             nims_data = yaml.safe_load(f)
 
         return nims_data
@@ -52,21 +52,21 @@ async def get_nim_details(nim_id: str) -> Dict[str, Any]:
         if not nims_file.exists():
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="NIMs catalog file not found"
+                detail="NIMs catalog file not found",
             )
 
-        with open(nims_file, 'r', encoding='utf-8') as f:
+        with open(nims_file, "r", encoding="utf-8") as f:
             nims_data = yaml.safe_load(f)
 
         # Find the NIM with the matching ID
         for nim in nims_data:
-            if nim.get('id') == nim_id:
+            if nim.get("id") == nim_id:
                 return nim
 
         # If not found, return 404
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"NIM with ID '{nim_id}' not found"
+            detail=f"NIM with ID '{nim_id}' not found",
         )
     except HTTPException:
         raise

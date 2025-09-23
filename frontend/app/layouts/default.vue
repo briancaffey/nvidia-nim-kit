@@ -16,33 +16,31 @@
 
           <!-- Navigation Links -->
           <div class="hidden md:flex items-center space-x-6">
-            <NuxtLink
-              to="/"
-              class="text-sm font-medium transition-colors hover:text-primary"
-              :class="isActive('/') ? 'text-primary' : 'text-muted-foreground'"
-            >
-              Home
-            </NuxtLink>
-            <NuxtLink
-              to="/about"
-              class="text-sm font-medium transition-colors hover:text-primary"
-              :class="isActive('/about') ? 'text-primary' : 'text-muted-foreground'"
-            >
-              About
-            </NuxtLink>
-            <NuxtLink
-              to="/debug"
-              class="text-sm font-medium transition-colors hover:text-primary"
-              :class="isActive('/debug') ? 'text-primary' : 'text-muted-foreground'"
-            >
-              Debug
-            </NuxtLink>
+            <!-- NVIDIA API Toggle -->
+            <div class="flex items-center space-x-2">
+              <Label for="nvidia-api-toggle" class="text-sm font-medium text-muted-foreground">
+                NVIDIA API
+              </Label>
+              <Switch
+                id="nvidia-api-toggle"
+                v-model="useNvidiaApi"
+                :disabled="!canEnable"
+                class="data-[state=checked]:bg-primary"
+              />
+            </div>
             <NuxtLink
               to="/nim-config"
               class="text-sm font-medium transition-colors hover:text-primary"
               :class="isActive('/nim-config') ? 'text-primary' : 'text-muted-foreground'"
             >
               NIM Config
+            </NuxtLink>
+            <NuxtLink
+              to="/nvidia-config"
+              class="text-sm font-medium transition-colors hover:text-primary"
+              :class="isActive('/nvidia-config') ? 'text-primary' : 'text-muted-foreground'"
+            >
+              NVIDIA Config
             </NuxtLink>
             <NuxtLink
               to="/llm"
@@ -93,30 +91,18 @@
         <!-- Mobile Menu -->
         <div v-if="mobileMenuOpen" class="md:hidden border-t py-4">
           <div class="flex flex-col space-y-2">
-            <NuxtLink
-              to="/"
-              class="text-sm font-medium transition-colors hover:text-primary px-2 py-1 rounded-md"
-              :class="isActive('/') ? 'text-primary bg-accent' : 'text-muted-foreground'"
-              @click="mobileMenuOpen = false"
-            >
-              Home
-            </NuxtLink>
-            <NuxtLink
-              to="/about"
-              class="text-sm font-medium transition-colors hover:text-primary px-2 py-1 rounded-md"
-              :class="isActive('/about') ? 'text-primary bg-accent' : 'text-muted-foreground'"
-              @click="mobileMenuOpen = false"
-            >
-              About
-            </NuxtLink>
-            <NuxtLink
-              to="/debug"
-              class="text-sm font-medium transition-colors hover:text-primary px-2 py-1 rounded-md"
-              :class="isActive('/debug') ? 'text-primary bg-accent' : 'text-muted-foreground'"
-              @click="mobileMenuOpen = false"
-            >
-              Debug
-            </NuxtLink>
+            <!-- NVIDIA API Toggle for Mobile -->
+            <div class="flex items-center justify-between px-2 py-1">
+              <Label for="nvidia-api-toggle-mobile" class="text-sm font-medium text-muted-foreground">
+                NVIDIA API
+              </Label>
+              <Switch
+                id="nvidia-api-toggle-mobile"
+                v-model="useNvidiaApi"
+                :disabled="!canEnable"
+                class="data-[state=checked]:bg-primary"
+              />
+            </div>
             <NuxtLink
               to="/nim-config"
               class="text-sm font-medium transition-colors hover:text-primary px-2 py-1 rounded-md"
@@ -124,6 +110,14 @@
               @click="mobileMenuOpen = false"
             >
               NIM Config
+            </NuxtLink>
+            <NuxtLink
+              to="/nvidia-config"
+              class="text-sm font-medium transition-colors hover:text-primary px-2 py-1 rounded-md"
+              :class="isActive('/nvidia-config') ? 'text-primary bg-accent' : 'text-muted-foreground'"
+              @click="mobileMenuOpen = false"
+            >
+              NVIDIA Config
             </NuxtLink>
             <NuxtLink
               to="/llm"
@@ -307,7 +301,16 @@ const mobileMenuOpen = ref(false)
 // @ts-ignore - useColorMode is auto-imported by @nuxtjs/color-mode
 const colorMode = useColorMode()
 
+// NVIDIA API toggle
+const { useNvidiaApi, canEnable, setNvidiaApi, loadFromBackend } = useNvidiaApiToggle()
+
+// Load toggle state on mount
+onMounted(() => {
+  loadFromBackend()
+})
+
 const isActive = (path: string) => {
+  if (!route) return false
   return route.path === path
 }
 

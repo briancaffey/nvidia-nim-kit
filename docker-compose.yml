@@ -10,6 +10,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - REDIS_URL=redis://redis:6379/0
       - LOG_LEVEL=DEBUG
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY:-}
     volumes:
       - ./nimkit:/app/nimkit
       - /app/.venv

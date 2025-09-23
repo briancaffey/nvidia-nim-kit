@@ -13,6 +13,7 @@ from pydantic import BaseModel, validator
 
 from nimkit.src.api.llm.models import InferenceRequest
 from nimkit.src.api.config.nims import nim_manager
+from nimkit.src.api.utils import get_nvidia_api_headers, validate_nim_exists
 
 logger = logging.getLogger(__name__)
 
@@ -69,11 +70,58 @@ async def get_nim_endpoint(nim_id: str) -> str:
     return f"http://{nim_data.host}:{nim_data.port}"
 
 
+async def get_inference_endpoint(
+    nim_id: str, use_nvidia_api: bool = False, stream: bool = False
+) -> tuple[str, dict]:
+    """
+    Get the appropriate inference endpoint and headers based on whether to use NVIDIA API.
+
+    Returns:
+        tuple: (endpoint_url, headers)
+    """
+    if use_nvidia_api:
+        # Get NIM metadata to find invoke_url
+        _, nim_metadata = validate_nim_exists(nim_id)
+        invoke_url = nim_metadata.get("invoke_url")
+
+        if not invoke_url:
+            raise HTTPException(
+                status_code=400,
+                detail=f"NVIDIA API invoke_url not found for NIM {nim_id}",
+            )
+
+        # For LLM, we need to append the chat completions endpoint
+        if invoke_url.endswith("/v1"):
+            endpoint = f"{invoke_url}/chat/completions"
+        else:
+            endpoint = f"{invoke_url}/v1/chat/completions"
+
+        headers = get_nvidia_api_headers()
+        if stream:
+            headers["Accept"] = "text/event-stream"
+        return endpoint, headers
+    else:
+        # Use local NIM endpoint
+        nim_data = nim_manager.get_nim_data(nim_id)
+        if not nim_data:
+            raise HTTPException(status_code=404, detail=f"NIM {nim_id} not found")
+
+        endpoint = f"http://{nim_data.host}:{nim_data.port}/v1/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream" if stream else "application/json",
+        }
+        return endpoint, headers
+
+
 @router.post("/inference")
 async def inference(
     request_body: InferenceRequestBody,
     nim_id: str = Query(..., description="NIM instance ID"),
     nim_endpoint: str = Depends(get_nim_endpoint),
+    use_nvidia_api: bool = Query(
+        False, description="Use NVIDIA API instead of local NIM"
+    ),
 ):
     """Proxy inference request to NIM and save response."""
 
@@ -122,6 +170,14 @@ async def inference(
 
         logger.info(f"Sending request to NIM: {nim_request_data}")
 
+        # Get the appropriate endpoint and headers
+        endpoint, headers = await get_inference_endpoint(
+            nim_id, use_nvidia_api, request_body.stream or False
+        )
+
+        logger.info(f"Using endpoint: {endpoint}")
+        logger.info(f"Using headers: {headers}")
+
         # Make request to NIM
         if request_body.stream:
             logger.info("Processing streaming response")
@@ -136,12 +192,9 @@ async def inference(
                     async with httpx.AsyncClient(timeout=None) as client:
                         async with client.stream(
                             "POST",
-                            f"{nim_endpoint}/v1/chat/completions",
+                            endpoint,
                             json=nim_request_data,
-                            headers={
-                                "Content-Type": "application/json",
-                                "Accept": "text/event-stream",
-                            },
+                            headers=headers,
                         ) as response:
                             logger.info(f"NIM response status: {response.status_code}")
                             logger.info(
@@ -212,9 +265,9 @@ async def inference(
                 logger.info("Processing non-streaming response")
                 # Non-streaming path (unchanged except larger timeout)
                 response = await client.post(
-                    f"{nim_endpoint}/v1/chat/completions",
+                    endpoint,
                     json=nim_request_data,
-                    headers={"Content-Type": "application/json"},
+                    headers=headers,
                 )
                 logger.info(f"NIM response status: {response.status_code}")
                 logger.info(f"NIM response headers: {dict(response.headers)}")
@@ -354,7 +407,9 @@ async def completion(
                             },
                         ) as response:
                             logger.info(f"NIM response status: {response.status_code}")
-                            logger.info(f"NIM response headers: {dict(response.headers)}")
+                            logger.info(
+                                f"NIM response headers: {dict(response.headers)}"
+                            )
                             response.raise_for_status()
 
                             async for line in response.aiter_lines():
@@ -378,7 +433,9 @@ async def completion(
                                         chunk_data = json.loads(data_content)
                                         all_chunks.append(chunk_data)
                                     except json.JSONDecodeError:
-                                        logger.warning(f"Failed to parse chunk: {data_content}")
+                                        logger.warning(
+                                            f"Failed to parse chunk: {data_content}"
+                                        )
 
                     # Store after stream completes
                     response_data = {
@@ -395,7 +452,9 @@ async def completion(
                         f"for request {request_id}"
                     )
                 except Exception as e:
-                    logger.error(f"Failed to process streaming completion response: {e}")
+                    logger.error(
+                        f"Failed to process streaming completion response: {e}"
+                    )
                     error_data = {"error": str(e), "type": "streaming_error"}
                     inference_request.set_error(error_data)
                     inference_request.status = "error"

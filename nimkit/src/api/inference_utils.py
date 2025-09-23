@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional
 from fastapi import HTTPException, status
 
 from .llm.models import InferenceRequest
-from .utils import validate_nim_exists
+from .utils import get_nvidia_api_headers, validate_nim_exists
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 async def perform_image_generation_inference(
     nim_id: str,
     request_data: Dict[str, Any],
-    inference_request: InferenceRequest
+    inference_request: InferenceRequest,
+    use_nvidia_api: bool = False,
 ) -> Dict[str, Any]:
     """
     Perform image generation inference for a NIM.
@@ -35,24 +36,35 @@ async def perform_image_generation_inference(
         # Validate NIM exists and get configuration
         nim_data, nim_metadata = validate_nim_exists(nim_id)
 
-        # Use the local NIM endpoint from Redis configuration
-        # Check if there's a specific endpoint in metadata, otherwise use default
-        base_url = f"http://{nim_data.host}:{nim_data.port}"
+        if use_nvidia_api:
+            # Use NVIDIA API endpoint
+            invoke_url = nim_metadata.get("invoke_url")
+            if not invoke_url:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"NVIDIA API invoke_url not found for NIM {nim_id}",
+                )
 
-        # Use the correct endpoint for local NIM instances
-        invoke_url = f"{base_url}/v1/infer"
+            # For image generation, we need to append the infer endpoint
+            if invoke_url.endswith("/v1"):
+                invoke_url = f"{invoke_url}/infer"
+            else:
+                invoke_url = f"{invoke_url}/v1/infer"
+
+            headers = get_nvidia_api_headers()
+        else:
+            # Use the local NIM endpoint from Redis configuration
+            base_url = f"http://{nim_data.host}:{nim_data.port}"
+            invoke_url = f"{base_url}/v1/infer"
+
+            # Prepare headers for local NIM
+            headers = {"accept": "application/json", "content-type": "application/json"}
 
         logger.info(f"Performing image generation inference for {nim_id}")
         logger.debug(f"NIM type: {nim_data.nim_type}")
         logger.debug(f"NIM metadata: {nim_metadata}")
         logger.info(f"Invoke URL: {invoke_url}")
         logger.debug(f"Request data: {request_data}")
-
-        # Prepare headers
-        headers = {
-            "accept": "application/json",
-            "content-type": "application/json"
-        }
         logger.debug(f"Request headers: {headers}")
 
         # Make the request to the NIM
@@ -61,9 +73,11 @@ async def perform_image_generation_inference(
             invoke_url,
             json=request_data,
             headers=headers,
-            timeout=60  # 60 second timeout for image generation
+            timeout=60,  # 60 second timeout for image generation
         )
-        logger.debug(f"Response received. Status: {response.status_code}, Content-Type: {response.headers.get('content-type', 'unknown')}")
+        logger.debug(
+            f"Response received. Status: {response.status_code}, Content-Type: {response.headers.get('content-type', 'unknown')}"
+        )
 
         # Check if request was successful
         if response.status_code != 200:
@@ -72,24 +86,27 @@ async def perform_image_generation_inference(
 
             # Update inference request with error
             inference_request.status = "error"
-            inference_request.set_error({
-                "status_code": response.status_code,
-                "error": response.text,
-                "nim_id": nim_id,
-                "invoke_url": invoke_url
-            })
+            inference_request.set_error(
+                {
+                    "status_code": response.status_code,
+                    "error": response.text,
+                    "nim_id": nim_id,
+                    "invoke_url": invoke_url,
+                }
+            )
             inference_request.update_timestamp()
             inference_request.save()
 
             raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=error_msg
+                status_code=status.HTTP_502_BAD_GATEWAY, detail=error_msg
             )
 
         # Parse response
         logger.debug("Parsing response JSON")
         response_data = response.json()
-        logger.debug(f"Response data keys: {list(response_data.keys()) if isinstance(response_data, dict) else 'Not a dict'}")
+        logger.debug(
+            f"Response data keys: {list(response_data.keys()) if isinstance(response_data, dict) else 'Not a dict'}"
+        )
         logger.info(f"Image generation inference successful for {nim_id}")
 
         # Update inference request with success
@@ -113,17 +130,14 @@ async def perform_image_generation_inference(
 
         # Update inference request with timeout error
         inference_request.status = "error"
-        inference_request.set_error({
-            "error": "Request timeout",
-            "nim_id": nim_id,
-            "timeout_seconds": 60
-        })
+        inference_request.set_error(
+            {"error": "Request timeout", "nim_id": nim_id, "timeout_seconds": 60}
+        )
         inference_request.update_timestamp()
         inference_request.save()
 
         raise HTTPException(
-            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            detail=error_msg
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=error_msg
         )
 
     except requests.exceptions.RequestException as e:
@@ -132,18 +146,13 @@ async def perform_image_generation_inference(
 
         # Update inference request with request error
         inference_request.status = "error"
-        inference_request.set_error({
-            "error": str(e),
-            "nim_id": nim_id,
-            "error_type": "RequestException"
-        })
+        inference_request.set_error(
+            {"error": str(e), "nim_id": nim_id, "error_type": "RequestException"}
+        )
         inference_request.update_timestamp()
         inference_request.save()
 
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=error_msg
-        )
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=error_msg)
 
     except Exception as e:
         error_msg = f"Unexpected error during inference for {nim_id}: {str(e)}"
@@ -151,24 +160,22 @@ async def perform_image_generation_inference(
 
         # Update inference request with unexpected error
         inference_request.status = "error"
-        inference_request.set_error({
-            "error": str(e),
-            "nim_id": nim_id,
-            "error_type": "UnexpectedError"
-        })
+        inference_request.set_error(
+            {"error": str(e), "nim_id": nim_id, "error_type": "UnexpectedError"}
+        )
         inference_request.update_timestamp()
         inference_request.save()
 
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=error_msg
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_msg
         )
 
 
 async def perform_inference(
     nim_id: str,
     request_data: Dict[str, Any],
-    inference_request: InferenceRequest
+    inference_request: InferenceRequest,
+    use_nvidia_api: bool = False,
 ) -> Dict[str, Any]:
     """
     Generic inference function that routes to appropriate handler based on NIM type.
@@ -183,13 +190,15 @@ async def perform_inference(
     """
     # Get NIM metadata to determine type
     _, nim_metadata = validate_nim_exists(nim_id)
-    nim_type = nim_metadata.get('type', '').lower()
+    nim_type = nim_metadata.get("type", "").lower()
 
     # Route to appropriate handler based on NIM type
-    if nim_type == 'image':
-        return await perform_image_generation_inference(nim_id, request_data, inference_request)
+    if nim_type == "image":
+        return await perform_image_generation_inference(
+            nim_id, request_data, inference_request, use_nvidia_api
+        )
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"NIM type '{nim_type}' is not supported for inference"
+            detail=f"NIM type '{nim_type}' is not supported for inference",
         )

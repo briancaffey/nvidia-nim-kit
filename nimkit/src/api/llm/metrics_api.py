@@ -19,11 +19,13 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 class MetricsQueryResponse(BaseModel):
     """Response model for metrics query."""
+
     series: List[Dict[str, Any]]
 
 
 class MetricsKeysResponse(BaseModel):
     """Response model for metrics keys discovery."""
+
     keys: List[Dict[str, Any]]
 
 
@@ -49,7 +51,9 @@ class MetricsAPI:
             try:
                 return int(time_str)
             except ValueError:
-                raise HTTPException(status_code=400, detail=f"Invalid time format: {time_str}")
+                raise HTTPException(
+                    status_code=400, detail=f"Invalid time format: {time_str}"
+                )
 
     def _parse_labels(self, labels_str: Optional[str]) -> List[str]:
         """Parse comma-separated label filters."""
@@ -62,7 +66,9 @@ class MetricsAPI:
             if "=" in label_pair:
                 filters.append(label_pair)
             else:
-                raise HTTPException(status_code=400, detail=f"Invalid label format: {label_pair}")
+                raise HTTPException(
+                    status_code=400, detail=f"Invalid label format: {label_pair}"
+                )
 
         return filters
 
@@ -81,7 +87,13 @@ class MetricsAPI:
 
         return True
 
-    def _build_filter_list(self, metric: str, labels: List[str], le: Optional[str] = None, quantile: Optional[str] = None) -> List[str]:
+    def _build_filter_list(
+        self,
+        metric: str,
+        labels: List[str],
+        le: Optional[str] = None,
+        quantile: Optional[str] = None,
+    ) -> List[str]:
         """Build RedisTimeSeries filter list."""
         filters = []
 
@@ -109,13 +121,15 @@ class MetricsAPI:
         quantile: Optional[str] = None,
         agg: Optional[str] = None,
         bucket_ms: Optional[int] = None,
-        limit: int = 50
+        limit: int = 50,
     ) -> MetricsQueryResponse:
         """Query metrics from RedisTimeSeries."""
         try:
             # Parse time parameters
             start_ms = self._parse_time(start)
-            end_ms = self._parse_time(end) if end else int(datetime.now().timestamp() * 1000)
+            end_ms = (
+                self._parse_time(end) if end else int(datetime.now().timestamp() * 1000)
+            )
 
             # Find keys that match the metric
             pattern = f"ts:prom:{metric}:*"
@@ -133,7 +147,9 @@ class MetricsAPI:
                     # Add aggregation if specified
                     if agg and bucket_ms:
                         if agg not in ["avg", "sum", "min", "max", "count"]:
-                            raise HTTPException(status_code=400, detail=f"Invalid aggregation: {agg}")
+                            raise HTTPException(
+                                status_code=400, detail=f"Invalid aggregation: {agg}"
+                            )
                         cmd_args.extend(["AGGREGATION", agg, bucket_ms])
 
                     logger.debug(f"Executing TS.RANGE command: {cmd_args}")
@@ -155,11 +171,9 @@ class MetricsAPI:
                     # Create labels dict
                     labels_dict = {"metric": metric_name}
 
-                    series.append({
-                        "key": key,
-                        "labels": labels_dict,
-                        "samples": samples
-                    })
+                    series.append(
+                        {"key": key, "labels": labels_dict, "samples": samples}
+                    )
 
                 except Exception as e:
                     logger.warning(f"Failed to query key {key}: {e}")
@@ -177,7 +191,7 @@ class MetricsAPI:
         labels: Optional[str] = None,
         le: Optional[str] = None,
         quantile: Optional[str] = None,
-        limit: int = 50
+        limit: int = 50,
     ) -> MetricsKeysResponse:
         """Get available metrics keys."""
         try:
@@ -210,10 +224,7 @@ class MetricsAPI:
                         continue
 
                     # Add key to results
-                    result_keys.append({
-                        "key": key,
-                        "labels": labels_dict
-                    })
+                    result_keys.append({"key": key, "labels": labels_dict})
 
                 except Exception as e:
                     logger.warning(f"Failed to process key {key}: {e}")
@@ -237,13 +248,21 @@ router = APIRouter(prefix="/api/metrics", tags=["metrics"])
 def query_metrics(
     metric: str = Query(..., description="Metric name to query"),
     start: Union[str, int] = Query(..., description="Start time (ISO8601 or ms epoch)"),
-    end: Optional[Union[str, int]] = Query(None, description="End time (ISO8601 or ms epoch)"),
-    labels: Optional[str] = Query(None, description="Label filters (comma-separated key=value pairs)"),
+    end: Optional[Union[str, int]] = Query(
+        None, description="End time (ISO8601 or ms epoch)"
+    ),
+    labels: Optional[str] = Query(
+        None, description="Label filters (comma-separated key=value pairs)"
+    ),
     le: Optional[str] = Query(None, description="Histogram bucket upper bound"),
     quantile: Optional[str] = Query(None, description="Summary quantile"),
-    agg: Optional[str] = Query(None, description="Aggregation function (avg|sum|min|max|count)"),
-    bucket_ms: Optional[int] = Query(None, description="Bucket size in milliseconds (required with agg)"),
-    limit: int = Query(50, description="Maximum number of series to return")
+    agg: Optional[str] = Query(
+        None, description="Aggregation function (avg|sum|min|max|count)"
+    ),
+    bucket_ms: Optional[int] = Query(
+        None, description="Bucket size in milliseconds (required with agg)"
+    ),
+    limit: int = Query(50, description="Maximum number of series to return"),
 ):
     """
     Query metrics from RedisTimeSeries.
@@ -251,7 +270,9 @@ def query_metrics(
     Returns time series data for the specified metric with optional filtering and aggregation.
     """
     if agg and not bucket_ms:
-        raise HTTPException(status_code=400, detail="bucket_ms is required when agg is specified")
+        raise HTTPException(
+            status_code=400, detail="bucket_ms is required when agg is specified"
+        )
 
     return metrics_api.query_metrics(
         metric=metric,
@@ -262,17 +283,19 @@ def query_metrics(
         quantile=quantile,
         agg=agg,
         bucket_ms=bucket_ms,
-        limit=limit
+        limit=limit,
     )
 
 
 @router.get("/keys", response_model=MetricsKeysResponse)
 def get_metrics_keys(
     metric: Optional[str] = Query(None, description="Metric name filter"),
-    labels: Optional[str] = Query(None, description="Label filters (comma-separated key=value pairs)"),
+    labels: Optional[str] = Query(
+        None, description="Label filters (comma-separated key=value pairs)"
+    ),
     le: Optional[str] = Query(None, description="Histogram bucket upper bound"),
     quantile: Optional[str] = Query(None, description="Summary quantile"),
-    limit: int = Query(50, description="Maximum number of keys to return")
+    limit: int = Query(50, description="Maximum number of keys to return"),
 ):
     """
     Get available metrics keys.
@@ -280,9 +303,5 @@ def get_metrics_keys(
     Returns metadata about available time series without the actual data.
     """
     return metrics_api.get_metrics_keys(
-        metric=metric,
-        labels=labels,
-        le=le,
-        quantile=quantile,
-        limit=limit
+        metric=metric, labels=labels, le=le, quantile=quantile, limit=limit
     )

@@ -14,9 +14,11 @@
             Get Started
             <Icon name="lucide:arrow-right" class="ml-2 h-5 w-5" />
           </Button>
-          <Button variant="outline" size="lg" class="text-lg px-8">
-            Learn More
-          </Button>
+          <NuxtLink to="/about">
+            <Button variant="outline" size="lg" class="text-lg px-8">
+              Learn More
+            </Button>
+          </NuxtLink>
         </div>
       </div>
     </section>
@@ -132,9 +134,11 @@
               Start Building
               <Icon name="lucide:rocket" class="ml-2 h-5 w-5" />
             </Button>
-            <Button variant="outline" size="lg" class="text-lg px-8">
-              View Documentation
-            </Button>
+            <NuxtLink to="/about">
+              <Button variant="outline" size="lg" class="text-lg px-8">
+                Learn More About NIM Kit
+              </Button>
+            </NuxtLink>
           </div>
         </CardContent>
       </Card>

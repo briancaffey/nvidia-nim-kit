@@ -610,7 +610,11 @@ const generateImage = async () => {
 
     console.log('Generating image with data:', formData.value)
 
-    const response = await $fetch<InferenceResult>(`${config.public.apiBase}/v0/nims/${nimId.value}`, {
+    const toggleResponse = await fetch(`${config.public.apiBase}/api/nvidia/toggle`)
+    const toggleData = await toggleResponse.json()
+    const useNvidiaApi = toggleData.enabled
+
+    const response = await $fetch<InferenceResult>(`${config.public.apiBase}/v0/nims/${nimId.value}?use_nvidia_api=${useNvidiaApi}`, {
       method: 'POST',
       body: formData.value
     })

@@ -42,11 +42,15 @@ class MetricsProcessor:
         logger.warning("No LLM NIM found, using localhost:8000")
         return "localhost", 8000
 
-    def _build_key_and_labels(self, metric_name: str, labels: Dict[str, str]) -> Tuple[str, Dict[str, str]]:
+    def _build_key_and_labels(
+        self, metric_name: str, labels: Dict[str, str]
+    ) -> Tuple[str, Dict[str, str]]:
         """Build RedisTimeSeries key and labels from metric name and Prometheus labels."""
         # Create a stable hash of labels for the key
         sorted_labels = sorted(labels.items())
-        label_hash = hashlib.sha1(json.dumps(sorted_labels, sort_keys=True).encode()).hexdigest()[:8]
+        label_hash = hashlib.sha1(
+            json.dumps(sorted_labels, sort_keys=True).encode()
+        ).hexdigest()[:8]
 
         # Build the key
         key = f"ts:prom:{metric_name}:{label_hash}"
@@ -74,9 +78,12 @@ class MetricsProcessor:
 
             # Create new time series
             cmd_args = [
-                "TS.CREATE", key,
-                "RETENTION", TS_RETENTION_MS,
-                "DUPLICATE_POLICY", "LAST"
+                "TS.CREATE",
+                key,
+                "RETENTION",
+                TS_RETENTION_MS,
+                "DUPLICATE_POLICY",
+                "LAST",
             ]
 
             # Add labels
@@ -166,7 +173,9 @@ class MetricsProcessor:
             # Execute pipeline
             try:
                 pipe.execute()
-                logger.info(f"Processed metrics: {written_count} samples written, {error_count} errors")
+                logger.info(
+                    f"Processed metrics: {written_count} samples written, {error_count} errors"
+                )
             except Exception as e:
                 logger.error(f"Pipeline execution failed: {e}")
                 error_count += written_count
@@ -175,7 +184,7 @@ class MetricsProcessor:
             return {
                 "parsed": len(families),
                 "written": written_count,
-                "errors": error_count
+                "errors": error_count,
             }
 
         except Exception as e:

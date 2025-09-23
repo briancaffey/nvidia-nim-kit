@@ -15,10 +15,16 @@ router = APIRouter(prefix="/api/gallery", tags=["gallery"])
 
 @router.get("/inference-requests", response_model=Dict[str, Any])
 async def get_inference_requests(
-    limit: int = Query(default=10, ge=1, le=100, description="Number of results to return"),
+    limit: int = Query(
+        default=10, ge=1, le=100, description="Number of results to return"
+    ),
     offset: int = Query(default=0, ge=0, description="Number of results to skip"),
-    search: Optional[str] = Query(default=None, description="Search term to filter results"),
-    nim_ids: Optional[str] = Query(default=None, description="Comma-separated list of NIM IDs to filter by")
+    search: Optional[str] = Query(
+        default=None, description="Search term to filter results"
+    ),
+    nim_ids: Optional[str] = Query(
+        default=None, description="Comma-separated list of NIM IDs to filter by"
+    ),
 ) -> Dict[str, Any]:
     """
     Get paginated inference requests with optional filtering.
@@ -32,7 +38,9 @@ async def get_inference_requests(
     Returns:
         Dictionary containing the inference requests, pagination info, and metadata
     """
-    logger.info(f"Gallery request: limit={limit}, offset={offset}, search='{search}', nim_ids='{nim_ids}'")
+    logger.info(
+        f"Gallery request: limit={limit}, offset={offset}, search='{search}', nim_ids='{nim_ids}'"
+    )
 
     try:
         # Create index if it doesn't exist
@@ -62,9 +70,12 @@ async def get_inference_requests(
                 hash_data = redis_client.hgetall(key)
                 if hash_data:
                     # Convert bytes to strings
-                    data = {k.decode('utf-8') if isinstance(k, bytes) else k:
-                           v.decode('utf-8') if isinstance(v, bytes) else v
-                           for k, v in hash_data.items()}
+                    data = {
+                        k.decode("utf-8") if isinstance(k, bytes) else k: (
+                            v.decode("utf-8") if isinstance(v, bytes) else v
+                        )
+                        for k, v in hash_data.items()
+                    }
 
                     # Create InferenceRequest object from the data
                     request = InferenceRequest(**data)
@@ -79,7 +90,9 @@ async def get_inference_requests(
         for request in all_results:
             # Apply NIM ID filter
             if nim_ids:
-                nim_id_list = [nim_id.strip() for nim_id in nim_ids.split(',') if nim_id.strip()]
+                nim_id_list = [
+                    nim_id.strip() for nim_id in nim_ids.split(",") if nim_id.strip()
+                ]
                 if nim_id_list and request.nim_id not in nim_id_list:
                     continue
 
@@ -87,8 +100,8 @@ async def get_inference_requests(
             if search:
                 search_term = search.lower()
                 # Search in input_json and output_json fields
-                input_matches = search_term in (request.input_json or '').lower()
-                output_matches = search_term in (request.output_json or '').lower()
+                input_matches = search_term in (request.input_json or "").lower()
+                output_matches = search_term in (request.output_json or "").lower()
                 if not input_matches and not output_matches:
                     continue
 
@@ -101,9 +114,11 @@ async def get_inference_requests(
 
         # Apply pagination manually since redis-om doesn't have built-in pagination
         total_count = len(filtered_results)
-        paginated_results = filtered_results[offset:offset + limit]
+        paginated_results = filtered_results[offset : offset + limit]
 
-        logger.info(f"Query returned {total_count} total results, returning {len(paginated_results)} results")
+        logger.info(
+            f"Query returned {total_count} total results, returning {len(paginated_results)} results"
+        )
 
         # Convert InferenceRequest objects to dictionaries for JSON serialization
         serialized_results = []
@@ -126,19 +141,25 @@ async def get_inference_requests(
                 try:
                     request_data["input_data"] = request.get_input()
                 except Exception as e:
-                    logger.warning(f"Failed to parse input data for request {request.request_id}: {e}")
+                    logger.warning(
+                        f"Failed to parse input data for request {request.request_id}: {e}"
+                    )
                     request_data["input_data"] = {}
 
                 try:
                     request_data["output_data"] = request.get_output()
                 except Exception as e:
-                    logger.warning(f"Failed to parse output data for request {request.request_id}: {e}")
+                    logger.warning(
+                        f"Failed to parse output data for request {request.request_id}: {e}"
+                    )
                     request_data["output_data"] = {}
 
                 try:
                     request_data["error_data"] = request.get_error()
                 except Exception as e:
-                    logger.warning(f"Failed to parse error data for request {request.request_id}: {e}")
+                    logger.warning(
+                        f"Failed to parse error data for request {request.request_id}: {e}"
+                    )
                     request_data["error_data"] = {}
 
                 serialized_results.append(request_data)
@@ -168,17 +189,17 @@ async def get_inference_requests(
                 "search": search,
                 "nim_ids": nim_ids,
             },
-            "status": "success"
+            "status": "success",
         }
 
-        logger.info(f"Successfully returned {len(serialized_results)} inference requests")
+        logger.info(
+            f"Successfully returned {len(serialized_results)} inference requests"
+        )
         return response_data
 
     except Exception as e:
         logger.error(f"Error fetching inference requests: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch inference requests: {str(e)}"
+            detail=f"Failed to fetch inference requests: {str(e)}",
         )
-
-

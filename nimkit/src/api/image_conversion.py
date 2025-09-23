@@ -42,8 +42,8 @@ def decode_base64_image(image_data: str) -> np.ndarray:
         logger.debug("🎯 Starting base64 image decoding")
 
         # Remove data URL prefix if present
-        if image_data.startswith('data:image/'):
-            image_data = image_data.split(',')[1]
+        if image_data.startswith("data:image/"):
+            image_data = image_data.split(",")[1]
 
         # Decode base64
         image_bytes = base64.b64decode(image_data)
@@ -65,7 +65,7 @@ def decode_base64_image(image_data: str) -> np.ndarray:
         logger.error(f"❌ Error decoding base64 image: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to decode image: {str(e)}"
+            detail=f"Failed to decode image: {str(e)}",
         )
 
 
@@ -76,16 +76,16 @@ def encode_image_to_base64(image: np.ndarray, format: str = "jpeg") -> str:
 
         # Encode image
         if format.lower() == "jpeg":
-            _, buffer = cv2.imencode('.jpg', image, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            _, buffer = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 90])
         elif format.lower() == "png":
-            _, buffer = cv2.imencode('.png', image)
+            _, buffer = cv2.imencode(".png", image)
         else:
             raise ValueError(f"❌ Unsupported format: {format}")
 
         logger.debug(f"🎯 Encoded image to buffer with {len(buffer)} bytes")
 
         # Convert to base64
-        image_base64 = base64.b64encode(buffer).decode('utf-8')
+        image_base64 = base64.b64encode(buffer).decode("utf-8")
         logger.debug(f"🎯 Created base64 string with {len(image_base64)} characters")
 
         # Create data URL
@@ -98,7 +98,7 @@ def encode_image_to_base64(image: np.ndarray, format: str = "jpeg") -> str:
         logger.error(f"❌ Error encoding image to base64: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to encode image: {str(e)}"
+            detail=f"Failed to encode image: {str(e)}",
         )
 
 
@@ -107,7 +107,7 @@ def convert_to_canny(
     lower_threshold: float = 0.7,
     upper_threshold: float = 1.3,
     blur_kernel_size: int = 5,
-    blur_sigma: float = 0.0
+    blur_sigma: float = 0.0,
 ) -> np.ndarray:
     """🔍 Convert image to canny edge detection with configurable parameters."""
     try:
@@ -126,7 +126,9 @@ def convert_to_canny(
         sigma = blur_sigma if blur_sigma > 0 else 0
 
         blurred = cv2.GaussianBlur(gray, (blur_kernel_size, blur_kernel_size), sigma)
-        logger.debug(f"🔍 Applied Gaussian blur with kernel size {blur_kernel_size} and sigma {sigma}")
+        logger.debug(
+            f"🔍 Applied Gaussian blur with kernel size {blur_kernel_size} and sigma {sigma}"
+        )
 
         # Apply Canny edge detection with configurable thresholds
         median_val = np.median(blurred)
@@ -134,7 +136,9 @@ def convert_to_canny(
         upper = int(min(255, upper_threshold * median_val))
 
         edges = cv2.Canny(blurred, lower, upper)
-        logger.debug(f"🔍 Applied Canny edge detection with thresholds: {lower}, {upper} (multipliers: {lower_threshold}, {upper_threshold})")
+        logger.debug(
+            f"🔍 Applied Canny edge detection with thresholds: {lower}, {upper} (multipliers: {lower_threshold}, {upper_threshold})"
+        )
 
         # Convert back to 3-channel for consistency
         edges_bgr = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
@@ -147,12 +151,14 @@ def convert_to_canny(
         logger.error(f"❌ Error in canny edge detection: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Canny edge detection failed: {str(e)}"
+            detail=f"Canny edge detection failed: {str(e)}",
         )
 
 
 @torch.inference_mode()
-def run_midas(image_bgr: np.ndarray, model_type: str = "dpt_hybrid", device: str = "cpu") -> np.ndarray:
+def run_midas(
+    image_bgr: np.ndarray, model_type: str = "dpt_hybrid", device: str = "cpu"
+) -> np.ndarray:
     """🗺️ Run MiDaS depth estimation on image."""
     try:
         logger.debug(f"🗺️ Starting MiDaS depth estimation with model: {model_type}")
@@ -208,7 +214,7 @@ def run_midas(image_bgr: np.ndarray, model_type: str = "dpt_hybrid", device: str
         logger.error(f"❌ Error in MiDaS depth estimation: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"MiDaS depth estimation failed: {str(e)}"
+            detail=f"MiDaS depth estimation failed: {str(e)}",
         )
 
 
@@ -238,7 +244,7 @@ def normalize_depth(depth: np.ndarray, invert: bool = True) -> np.ndarray:
         logger.error(f"❌ Error in depth normalization: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Depth normalization failed: {str(e)}"
+            detail=f"Depth normalization failed: {str(e)}",
         )
 
 
@@ -265,7 +271,7 @@ def enhance_depth_gray(gray: np.ndarray, bilateral: bool = False) -> np.ndarray:
         logger.error(f"❌ Error in depth enhancement: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Depth enhancement failed: {str(e)}"
+            detail=f"Depth enhancement failed: {str(e)}",
         )
 
 
@@ -300,7 +306,7 @@ def convert_to_depth(image: np.ndarray) -> np.ndarray:
         logger.error(f"❌ Error in depth map conversion: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Depth map conversion failed: {str(e)}"
+            detail=f"Depth map conversion failed: {str(e)}",
         )
 
 
@@ -323,7 +329,7 @@ async def convert_image(request: ImageConversionRequest) -> ImageConversionRespo
             logger.error(f"❌ Invalid conversion type: {request.conversion_type}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Conversion type must be 'canny' or 'depth'"
+                detail="Conversion type must be 'canny' or 'depth'",
             )
 
         logger.debug(f"🎨 Valid conversion type: {request.conversion_type}")
@@ -332,7 +338,9 @@ async def convert_image(request: ImageConversionRequest) -> ImageConversionRespo
         logger.debug("🎨 Decoding input image...")
         original_image = decode_base64_image(request.image_data)
         original_height, original_width = original_image.shape[:2]
-        logger.debug(f"🎨 Original image dimensions: {original_width}x{original_height}")
+        logger.debug(
+            f"🎨 Original image dimensions: {original_width}x{original_height}"
+        )
 
         # Perform conversion
         if request.conversion_type == "canny":
@@ -342,25 +350,29 @@ async def convert_image(request: ImageConversionRequest) -> ImageConversionRespo
                 lower_threshold=request.canny_lower_threshold,
                 upper_threshold=request.canny_upper_threshold,
                 blur_kernel_size=request.canny_blur_kernel_size,
-                blur_sigma=request.canny_blur_sigma
+                blur_sigma=request.canny_blur_sigma,
             )
         elif request.conversion_type == "depth":
             logger.info("🗺️ Converting to depth map")
             converted_image = convert_to_depth(original_image)
 
         converted_height, converted_width = converted_image.shape[:2]
-        logger.debug(f"🎨 Converted image dimensions: {converted_width}x{converted_height}")
+        logger.debug(
+            f"🎨 Converted image dimensions: {converted_width}x{converted_height}"
+        )
 
         # Encode converted image
         logger.debug("🎨 Encoding converted image...")
         converted_image_data = encode_image_to_base64(converted_image, "jpeg")
 
-        logger.info(f"✅ Image conversion completed successfully: {request.conversion_type}")
+        logger.info(
+            f"✅ Image conversion completed successfully: {request.conversion_type}"
+        )
 
         return ImageConversionResponse(
             converted_image_data=converted_image_data,
             original_dimensions={"width": original_width, "height": original_height},
-            converted_dimensions={"width": converted_width, "height": converted_height}
+            converted_dimensions={"width": converted_width, "height": converted_height},
         )
 
     except HTTPException:
@@ -370,5 +382,5 @@ async def convert_image(request: ImageConversionRequest) -> ImageConversionRespo
         logger.error(f"❌ Unexpected error in image conversion: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Image conversion failed: {str(e)}"
+            detail=f"Image conversion failed: {str(e)}",
         )

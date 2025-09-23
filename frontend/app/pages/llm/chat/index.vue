@@ -405,7 +405,11 @@ const runInference = async () => {
     }
 
     // Make inference request
-    const res = await fetch(`${apiBase}/api/llm/inference?nim_id=${encodeURIComponent(selectedNimId.value)}`, {
+    const toggleResponse = await fetch(`${apiBase}/api/nvidia/toggle`)
+    const toggleData = await toggleResponse.json()
+    const useNvidiaApi = toggleData.enabled
+
+    const res = await fetch(`${apiBase}/api/llm/inference?nim_id=${encodeURIComponent(selectedNimId.value)}&use_nvidia_api=${useNvidiaApi}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

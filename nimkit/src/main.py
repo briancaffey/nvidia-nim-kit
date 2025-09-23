@@ -16,9 +16,11 @@ from nimkit.src.api.config.routes import router as nims_router
 from nimkit.src.api.nims_inference import router as nims_inference_router
 from nimkit.src.api.gallery import router as gallery_router
 from nimkit.src.api.image_conversion import router as image_conversion_router
+from nimkit.src.api.nvidia_api import router as nvidia_api_router
 
 # Set up logging
 import os
+
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
     level=getattr(logging, log_level, logging.INFO),
@@ -67,8 +69,13 @@ app.include_router(gallery_router)
 # Include image conversion routes
 app.include_router(image_conversion_router)
 
+# Include NVIDIA API routes
+app.include_router(nvidia_api_router)
+
 # Mount static files for NIM images
-app.mount("/static/nims", StaticFiles(directory="nimkit/static/nims"), name="nims_images")
+app.mount(
+    "/static/nims", StaticFiles(directory="nimkit/static/nims"), name="nims_images"
+)
 
 
 @app.get("/")
