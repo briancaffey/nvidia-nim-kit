@@ -63,6 +63,13 @@
             >
               Gallery
             </NuxtLink>
+            <NuxtLink
+              to="/tres"
+              class="text-sm font-medium transition-colors hover:text-primary"
+              :class="isActive('/tres') ? 'text-primary' : 'text-muted-foreground'"
+            >
+              TresJS
+            </NuxtLink>
             <button
               @click="toggleTheme"
               class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -142,6 +149,14 @@
               @click="mobileMenuOpen = false"
             >
               Gallery
+            </NuxtLink>
+            <NuxtLink
+              to="/tres"
+              class="text-sm font-medium transition-colors hover:text-primary px-2 py-1 rounded-md"
+              :class="isActive('/tres') ? 'text-primary bg-accent' : 'text-muted-foreground'"
+              @click="mobileMenuOpen = false"
+            >
+              TresJS
             </NuxtLink>
             <div class="px-2 py-1">
               <ThemeToggle />

@@ -33,7 +33,8 @@ export default defineNuxtConfig({
     ['@nuxtjs/color-mode', {
       classSuffix: ''
     }],
-    'shadcn-nuxt'
+    'shadcn-nuxt',
+    '@tresjs/nuxt'
   ],
   // @ts-ignore - shadcn-nuxt module configuration
   shadcn: {

@@ -77,6 +77,11 @@ app.mount(
     "/static/nims", StaticFiles(directory="nimkit/static/nims"), name="nims_images"
 )
 
+# Mount static files for 3D models
+app.mount(
+    "/models", StaticFiles(directory="nimkit/static/models"), name="models"
+)
+
 
 @app.get("/")
 async def root() -> Dict[str, str]:
