@@ -131,7 +131,7 @@ def validate_nim_exists(nim_id: str) -> Tuple[Any, Dict[str, Any]]:
     # Get NIM metadata from nims.yml
     try:
         current_dir = Path(__file__).parent
-        nims_file = current_dir.parent / "nims.yml"
+        nims_file = current_dir / "nims.yml"
 
         if not nims_file.exists():
             raise HTTPException(

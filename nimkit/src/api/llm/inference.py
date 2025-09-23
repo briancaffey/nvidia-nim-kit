@@ -80,21 +80,9 @@ async def get_inference_endpoint(
         tuple: (endpoint_url, headers)
     """
     if use_nvidia_api:
-        # Get NIM metadata to find invoke_url
-        _, nim_metadata = validate_nim_exists(nim_id)
-        invoke_url = nim_metadata.get("invoke_url")
-
-        if not invoke_url:
-            raise HTTPException(
-                status_code=400,
-                detail=f"NVIDIA API invoke_url not found for NIM {nim_id}",
-            )
-
-        # For LLM, we need to append the chat completions endpoint
-        if invoke_url.endswith("/v1"):
-            endpoint = f"{invoke_url}/chat/completions"
-        else:
-            endpoint = f"{invoke_url}/v1/chat/completions"
+        # For NVIDIA API, use the standard integrate.api.nvidia.com endpoint
+        # This matches the NVIDIA documentation: https://integrate.api.nvidia.com/v1/chat/completions
+        endpoint = "https://integrate.api.nvidia.com/v1/chat/completions"
 
         headers = get_nvidia_api_headers()
         if stream:
@@ -107,6 +95,38 @@ async def get_inference_endpoint(
             raise HTTPException(status_code=404, detail=f"NIM {nim_id} not found")
 
         endpoint = f"http://{nim_data.host}:{nim_data.port}/v1/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream" if stream else "application/json",
+        }
+        return endpoint, headers
+
+
+async def get_completion_endpoint(
+    nim_id: str, use_nvidia_api: bool = False, stream: bool = False
+) -> tuple[str, dict]:
+    """
+    Get the appropriate completion endpoint and headers based on whether to use NVIDIA API.
+
+    Returns:
+        tuple: (endpoint_url, headers)
+    """
+    if use_nvidia_api:
+        # For NVIDIA API, use the standard integrate.api.nvidia.com endpoint
+        # This matches the NVIDIA documentation: https://integrate.api.nvidia.com/v1/completions
+        endpoint = "https://integrate.api.nvidia.com/v1/completions"
+
+        headers = get_nvidia_api_headers()
+        if stream:
+            headers["Accept"] = "text/event-stream"
+        return endpoint, headers
+    else:
+        # Use local NIM endpoint
+        nim_data = nim_manager.get_nim_data(nim_id)
+        if not nim_data:
+            raise HTTPException(status_code=404, detail=f"NIM {nim_id} not found")
+
+        endpoint = f"http://{nim_data.host}:{nim_data.port}/v1/completions"
         headers = {
             "Content-Type": "application/json",
             "Accept": "text/event-stream" if stream else "application/json",
@@ -261,7 +281,7 @@ async def inference(
             )
         else:
             # Non-streaming path
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 logger.info("Processing non-streaming response")
                 # Non-streaming path (unchanged except larger timeout)
                 response = await client.post(
@@ -339,6 +359,9 @@ async def completion(
     request_body: CompletionRequestBody,
     nim_id: str = Query(..., description="NIM instance ID"),
     nim_endpoint: str = Depends(get_nim_endpoint),
+    use_nvidia_api: bool = Query(
+        False, description="Use NVIDIA API instead of local NIM"
+    ),
 ):
     """Proxy completion request to NIM and save response."""
 
@@ -385,6 +408,14 @@ async def completion(
 
         logger.info(f"Sending completion request to NIM: {nim_request_data}")
 
+        # Get the appropriate endpoint and headers
+        endpoint, headers = await get_completion_endpoint(
+            nim_id, use_nvidia_api, request_body.stream or False
+        )
+
+        logger.info(f"Using endpoint: {endpoint}")
+        logger.info(f"Using headers: {headers}")
+
         # Make request to NIM
         if request_body.stream:
             logger.info("Processing streaming completion response")
@@ -399,12 +430,9 @@ async def completion(
                     async with httpx.AsyncClient(timeout=None) as client:
                         async with client.stream(
                             "POST",
-                            f"{nim_endpoint}/v1/completions",
+                            endpoint,
                             json=nim_request_data,
-                            headers={
-                                "Content-Type": "application/json",
-                                "Accept": "text/event-stream",
-                            },
+                            headers=headers,
                         ) as response:
                             logger.info(f"NIM response status: {response.status_code}")
                             logger.info(
@@ -473,12 +501,12 @@ async def completion(
             )
         else:
             # Non-streaming path
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 logger.info("Processing non-streaming completion response")
                 response = await client.post(
-                    f"{nim_endpoint}/v1/completions",
+                    endpoint,
                     json=nim_request_data,
-                    headers={"Content-Type": "application/json"},
+                    headers=headers,
                 )
                 logger.info(f"NIM response status: {response.status_code}")
                 logger.info(f"NIM response headers: {dict(response.headers)}")
@@ -606,7 +634,7 @@ async def debug_streaming(
     logger.info(f"Sending test request: {test_request}")
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(
                 f"{nim_endpoint}/v1/chat/completions",
                 json=test_request,

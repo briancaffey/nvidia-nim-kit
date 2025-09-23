@@ -467,19 +467,30 @@ const loadModels = async (nimId: string) => {
 
   isLoadingModels.value = true
   try {
-    // Get NIM data to find host and port
-    const nimRes = await fetch(`${apiBase}/api/nims/${encodeURIComponent(nimId)}`)
-    if (!nimRes.ok) throw new Error('Failed to get NIM data')
-    const nimData = await nimRes.json()
+    // Check if NVIDIA API is enabled
+    const toggleResponse = await fetch(`${apiBase}/api/nvidia/toggle`)
+    const toggleData = await toggleResponse.json()
+    const useNvidiaApi = toggleData.enabled
 
-    // Get models from NIM
-    const modelsRes = await fetch(`http://${nimData.host}:${nimData.port}/v1/models`)
-    if (!modelsRes.ok) throw new Error('Failed to load models from NIM')
-    const modelsData = await modelsRes.json()
+    if (useNvidiaApi) {
+      // When using NVIDIA API, we don't need to load models from a local NIM
+      // The model name should be the NIM ID itself (e.g., "nvidia/llama-3.1-8b-instruct")
+      config.value.model = nimId
+    } else {
+      // Get NIM data to find host and port for local NIM
+      const nimRes = await fetch(`${apiBase}/api/nims/${encodeURIComponent(nimId)}`)
+      if (!nimRes.ok) throw new Error('Failed to get NIM data')
+      const nimData = await nimRes.json()
 
-    // Auto-populate the first model
-    if (modelsData.data && modelsData.data.length > 0) {
-      config.value.model = modelsData.data[0].id
+      // Get models from local NIM
+      const modelsRes = await fetch(`http://${nimData.host}:${nimData.port}/v1/models`)
+      if (!modelsRes.ok) throw new Error('Failed to load models from NIM')
+      const modelsData = await modelsRes.json()
+
+      // Auto-populate the first model
+      if (modelsData.data && modelsData.data.length > 0) {
+        config.value.model = modelsData.data[0].id
+      }
     }
   } catch (err) {
     error.value = `Failed to load models: ${err}`
@@ -488,8 +499,8 @@ const loadModels = async (nimId: string) => {
   }
 }
 
-const onNimChange = (nimId: string) => {
-  if (nimId) {
+const onNimChange = (nimId: any) => {
+  if (nimId && typeof nimId === 'string') {
     loadModels(nimId)
   }
 }
@@ -517,7 +528,11 @@ const runCompletion = async () => {
     }
 
     // Make completion request
-    const res = await fetch(`${apiBase}/api/llm/completion?nim_id=${encodeURIComponent(selectedNimId.value)}`, {
+    const toggleResponse = await fetch(`${apiBase}/api/nvidia/toggle`)
+    const toggleData = await toggleResponse.json()
+    const useNvidiaApi = toggleData.enabled
+
+    const res = await fetch(`${apiBase}/api/llm/completion?nim_id=${encodeURIComponent(selectedNimId.value)}&use_nvidia_api=${useNvidiaApi}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

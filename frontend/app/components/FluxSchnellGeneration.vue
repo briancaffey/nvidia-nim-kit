@@ -76,14 +76,17 @@
                 max="20"
                 step="0.1"
                 placeholder="0"
+                :disabled="isFluxSchnell"
               />
               <p class="text-sm text-muted-foreground">
-                Classifier-free guidance scale (default: 0)
+                {{ isFluxSchnell
+                   ? 'CFG Scale is fixed at 0 for Flux Schnell model'
+                   : 'Classifier-free guidance scale (default: 0)' }}
               </p>
             </div>
 
             <!-- Mode Selection -->
-            <div class="space-y-2">
+            <div v-if="!isFluxSchnell" class="space-y-2">
               <Label for="mode">Mode</Label>
               <Select v-model="formData.mode">
                 <SelectTrigger>
@@ -587,7 +590,7 @@ const isFluxSchnell = computed(() => nimId.value === 'black-forest-labs/flux_1-s
 const stepsValue = computed({
   get: () => [formData.value.steps],
   set: (value: number[]) => {
-    formData.value.steps = value[0]
+    formData.value.steps = value[0] || 4
   }
 })
 
@@ -848,6 +851,8 @@ watch(isFluxSchnell, (isSchnell) => {
     if (formData.value.steps > 4) {
       formData.value.steps = 4
     }
+    // CFG Scale must be 0 for Flux Schnell
+    formData.value.cfg_scale = 0
   } else {
     // Flux Dev: 5-50, default 20
     if (formData.value.steps < 5) {

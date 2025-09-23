@@ -45,11 +45,8 @@ async def perform_image_generation_inference(
                     detail=f"NVIDIA API invoke_url not found for NIM {nim_id}",
                 )
 
-            # For image generation, we need to append the infer endpoint
-            if invoke_url.endswith("/v1"):
-                invoke_url = f"{invoke_url}/infer"
-            else:
-                invoke_url = f"{invoke_url}/v1/infer"
+            # For NVIDIA API, the invoke_url is already the complete endpoint
+            # No need to append additional paths
 
             headers = get_nvidia_api_headers()
         else:
@@ -73,7 +70,7 @@ async def perform_image_generation_inference(
             invoke_url,
             json=request_data,
             headers=headers,
-            timeout=60,  # 60 second timeout for image generation
+            timeout=300,  # 5 minute timeout for image generation (NVIDIA API can be slow)
         )
         logger.debug(
             f"Response received. Status: {response.status_code}, Content-Type: {response.headers.get('content-type', 'unknown')}"
@@ -131,7 +128,7 @@ async def perform_image_generation_inference(
         # Update inference request with timeout error
         inference_request.status = "error"
         inference_request.set_error(
-            {"error": "Request timeout", "nim_id": nim_id, "timeout_seconds": 60}
+            {"error": "Request timeout", "nim_id": nim_id, "timeout_seconds": 300}
         )
         inference_request.update_timestamp()
         inference_request.save()
