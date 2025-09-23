@@ -39,9 +39,10 @@ RUN pip install uv && \
 # Copy source code (excluding media files via .dockerignore)
 COPY --chown=app:app nimkit/ ./nimkit/
 
-# Create directories for logs and celery with proper permissions
-RUN mkdir -p /app/logs /app/celery-data && \
-    chown -R app:app /app/logs /app/celery-data
+# Create directories for celery and media with proper permissions
+# Do this after copying source code to ensure directories exist
+RUN mkdir -p /app/celery-data /app/nimkit/media && \
+    chown -R app:app /app/celery-data /app/nimkit/media
 
 USER app
 

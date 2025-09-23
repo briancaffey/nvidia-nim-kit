@@ -25,7 +25,7 @@ log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
     level=getattr(logging, log_level, logging.INFO),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(), logging.FileHandler("/app/logs/nimkit.log")],
+    handlers=[logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
@@ -74,14 +74,14 @@ app.include_router(nvidia_api_router)
 
 # Mount static files for NIM images
 app.mount(
-    "/static/nims", StaticFiles(directory="nimkit/static/nims"), name="nims_images"
+    "/static/nims", StaticFiles(directory="/app/nimkit/static/nims"), name="nims_images"
 )
 
 # Mount static files for 3D models
-app.mount("/models", StaticFiles(directory="nimkit/static/models"), name="models")
+app.mount("/models", StaticFiles(directory="/app/nimkit/static/models"), name="models")
 
 # Mount static files for generated media (GLB files)
-app.mount("/media", StaticFiles(directory="nimkit/media"), name="media")
+app.mount("/media", StaticFiles(directory="/app/nimkit/media"), name="media")
 
 
 @app.get("/")
