@@ -310,8 +310,11 @@
 </template>
 
 <script setup lang="ts">
+import ThemeToggle from '~/components/ThemeToggle.vue'
+
 const route = useRoute()
 const mobileMenuOpen = ref(false)
+
 
 // @ts-ignore - useColorMode is auto-imported by @nuxtjs/color-mode
 const colorMode = useColorMode()

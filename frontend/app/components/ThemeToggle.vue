@@ -5,9 +5,9 @@
     style="cursor: pointer;"
   >
     <Icon
-      :name="colorMode.value === 'dark' ? 'lucide:sun' : 'lucide:moon'"
+      :name="(colorMode?.value === 'dark') ? 'lucide:sun' : 'lucide:moon'"
       class="h-4 w-4 transition-transform duration-300 hover:scale-110"
-      :class="colorMode.value === 'dark' ? 'rotate-180' : 'rotate-0'"
+      :class="(colorMode?.value === 'dark') ? 'rotate-180' : 'rotate-0'"
     />
   </button>
 </template>
@@ -17,6 +17,8 @@
 const colorMode = useColorMode()
 
 const toggleTheme = () => {
-  colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
+  if (colorMode && colorMode.preference !== undefined) {
+    colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
+  }
 }
 </script>

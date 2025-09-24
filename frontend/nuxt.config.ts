@@ -5,13 +5,6 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   ssr: true,
-  components: [
-    {
-      path: '@/components/ui',
-      prefix: 'Ui',
-      extensions: ['.vue'], // <-- block .ts barrels from becoming components
-    },
-  ],
   css: ['~/assets/css/tailwind.css'],
   vite: {
     plugins: [
@@ -31,25 +24,27 @@ export default defineNuxtConfig({
 
   modules: [
     '@nuxt/image',
-    '@nuxt/icon',
     '@nuxt/fonts',
     '@nuxt/eslint',
     ['@nuxtjs/color-mode', {
       classSuffix: ''
     }],
-    'shadcn-nuxt',
-    '@tresjs/nuxt'
+    '@tresjs/nuxt',
+    ['@nuxt/icon', {
+      collections: ['lucide']
+    }],
+    'shadcn-nuxt'
   ],
   // @ts-ignore - shadcn-nuxt module configuration
   shadcn: {
     /**
      * Prefix for all the imported component
      */
-    prefix: '',
+    prefix: 'Ui',
     /**
      * Directory that the component lives in.
      * @default "./components/ui"
      */
-    componentDir: './app/components/ui'
+    componentDir: '~/components/ui'
   }
 })

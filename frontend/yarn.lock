@@ -683,6 +683,13 @@
   resolved "https://registry.npmjs.org/@humanwhocodes/retry/-/retry-0.4.3.tgz"
   integrity sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==
 
+"@iconify-json/lucide@^1.2.68":
+  version "1.2.68"
+  resolved "https://registry.npmjs.org/@iconify-json/lucide/-/lucide-1.2.68.tgz"
+  integrity sha512-lR5xNJdn2CT0iR7lM25G4SewBO4G2hbr3fTWOc3AE9BspflEcneh02E3l9TBaCU/JOHozTJevWLrxBGypD7Tng==
+  dependencies:
+    "@iconify/types" "*"
+
 "@iconify/collections@^1.0.579":
   version "1.0.595"
   resolved "https://registry.npmjs.org/@iconify/collections/-/collections-1.0.595.tgz"
@@ -1465,7 +1472,7 @@
 
 "@oxc-parser/binding-linux-x64-gnu@0.72.3":
   version "0.72.3"
-  resolved "https://registry.npmjs.org/@oxc-parser/binding-linux-x64-gnu/-/binding-linux-x64-gnu-0.72.3.tgz"
+  resolved "https://registry.yarnpkg.com/@oxc-parser/binding-linux-x64-gnu/-/binding-linux-x64-gnu-0.72.3.tgz#0410543585600a8f8e249bb3d7cff40645025ec1"
   integrity sha512-hlyljEZ0sMPKJQCd5pxnRh2sAf/w+Ot2iJecgV9Hl3brrYrYCK2kofC0DFaJM3NRmG/8ZB3PlxnSRSKZTocwCw==
 
 "@oxc-parser/binding-linux-x64-gnu@0.87.0":
@@ -1475,7 +1482,7 @@
 
 "@oxc-parser/binding-linux-x64-musl@0.72.3":
   version "0.72.3"
-  resolved "https://registry.npmjs.org/@oxc-parser/binding-linux-x64-musl/-/binding-linux-x64-musl-0.72.3.tgz"
+  resolved "https://registry.yarnpkg.com/@oxc-parser/binding-linux-x64-musl/-/binding-linux-x64-musl-0.72.3.tgz#8179cb858122ca4c1c85f5caf0885e563a996cfe"
   integrity sha512-T17S8ORqAIq+YDFMvLfbNdAiYHYDM1+sLMNhesR5eWBtyTHX510/NbgEvcNemO9N6BNR7m4A9o+q468UG+dmbg==
 
 "@oxc-parser/binding-linux-x64-musl@0.87.0":
@@ -1519,7 +1526,7 @@
 
 "@oxc-project/types@^0.72.3":
   version "0.72.3"
-  resolved "https://registry.npmjs.org/@oxc-project/types/-/types-0.72.3.tgz"
+  resolved "https://registry.yarnpkg.com/@oxc-project/types/-/types-0.72.3.tgz#2463a4ba6c57e25c72029981909316b77ada59cd"
   integrity sha512-CfAC4wrmMkUoISpQkFAIfMVvlPfQV3xg7ZlcqPXPOIMQhdKIId44G8W0mCPgtpWdFFAyJ+SFtiM+9vbyCkoVng==
 
 "@oxc-project/types@^0.87.0":
@@ -6466,7 +6473,7 @@ oxc-minify@^0.87.0:
 
 oxc-parser@^0.72.0:
   version "0.72.3"
-  resolved "https://registry.npmjs.org/oxc-parser/-/oxc-parser-0.72.3.tgz"
+  resolved "https://registry.yarnpkg.com/oxc-parser/-/oxc-parser-0.72.3.tgz#1dead8d99d548970ab822ae05fa2244a47146935"
   integrity sha512-JYQeJKDcUTTZ/uTdJ+fZBGFjAjkLD1h0p3Tf44ZYXRcoMk+57d81paNPFAAwzrzzqhZmkGvKKXDxwyhJXYZlpg==
   dependencies:
     "@oxc-project/types" "^0.72.3"
@@ -7421,7 +7428,7 @@ setprototypeof@1.2.0:
 
 shadcn-nuxt@^2.2.0:
   version "2.2.0"
-  resolved "https://registry.npmjs.org/shadcn-nuxt/-/shadcn-nuxt-2.2.0.tgz"
+  resolved "https://registry.yarnpkg.com/shadcn-nuxt/-/shadcn-nuxt-2.2.0.tgz#0e80aa3b779a7032e5352d19bfc559d51c82f0a6"
   integrity sha512-0GxzEoTwwsn2K+7rXljhvM7T5+FC8RcBbpvr72L2qwfI9aj/oJgYgUKtC7/onIX8vHrGGziJMfA/xyjibD4J4A==
   dependencies:
     "@nuxt/kit" "^3.17.3"

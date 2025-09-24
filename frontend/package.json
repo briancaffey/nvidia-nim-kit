@@ -41,6 +41,7 @@
     "zod": "^4.1.9"
   },
   "devDependencies": {
+    "@iconify-json/lucide": "^1.2.68",
     "@nuxtjs/color-mode": "^3.5.2",
     "shadcn-nuxt": "^2.2.0",
     "typescript": "^5.9.2",
