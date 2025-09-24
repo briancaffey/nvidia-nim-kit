@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.0](https://github.com/briancaffey/nvidia-nim-kit/compare/v1.3.0...v1.4.0) (2025-09-24)
+
+
+### Features
+
+* **studiovoice:** add support for local and remote inference with nvidia studiovoice nim ([d5156cb](https://github.com/briancaffey/nvidia-nim-kit/commit/d5156cb7276da500a814d39dfaf40944c196cb0d))
+
+
+### Bug Fixes
+
+* **nuxt:** fix nuxt warnings ([62ac541](https://github.com/briancaffey/nvidia-nim-kit/commit/62ac5410008ef672d30f626534e1aff56a6b5d7f))
+
 ## [1.3.0](https://github.com/briancaffey/nvidia-nim-kit/compare/v1.2.0...v1.3.0) (2025-09-24)
 
 
