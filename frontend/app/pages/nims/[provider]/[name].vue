@@ -82,6 +82,11 @@
       <div v-else-if="isTrellisModel">
         <TrellisGeneration :nim-id="nimId" />
       </div>
+
+      <!-- RIVA ASR Generation Component -->
+      <div v-else-if="isAsrModel">
+        <RivaAsrGeneration :nim-id="nimId" />
+      </div>
     </div>
     </div>
   </div>
@@ -90,6 +95,7 @@
 <script setup lang="ts">
 import FluxSchnellGeneration from '~/components/FluxSchnellGeneration.vue'
 import TrellisGeneration from '~/components/TrellisGeneration.vue'
+import RivaAsrGeneration from '~/components/RivaAsrGeneration.vue'
 
 interface NIM {
   id: string
@@ -130,6 +136,11 @@ const isFluxModel = computed(() => {
 // Check if this is a Trellis model
 const isTrellisModel = computed(() => {
   return nimId.value === 'microsoft/trellis'
+})
+
+// Check if this is an ASR model
+const isAsrModel = computed(() => {
+  return nimId.value === 'nvidia/parakeet-ctc-0_6b-asr'
 })
 
 const fetchNimDetails = async () => {

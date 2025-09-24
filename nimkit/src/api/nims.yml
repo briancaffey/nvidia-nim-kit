@@ -197,6 +197,7 @@
 
 - id: nvidia/parakeet-ctc-0_6b-asr
   url: https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-asr
+  invoke_url: https://ai.api.nvidia.com/v1/genai/nvidia/parakeet-ctc-0_6b-asr
   type: asr
   grpc_target: grpc.nvcf.nvidia.com:443
   tags:

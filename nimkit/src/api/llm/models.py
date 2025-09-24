@@ -41,6 +41,9 @@ class InferenceRequest(HashModel):
     status: str = Field(
         default="pending", description="Request status: pending, completed, error"
     )
+    audio_file_path: Optional[str] = Field(
+        default=None, description="Path to uploaded audio file for ASR requests"
+    )
     # TODO: add field for inference duration in ms
     # TODO: add field for generated image file path
     # TODO: add field for generated 3D model file path

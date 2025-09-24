@@ -412,6 +412,484 @@ async def perform_3d_generation_inference(
         )
 
 
+async def perform_asr_inference(
+    nim_id: str,
+    request_data: Dict[str, Any],
+    inference_request: InferenceRequest,
+    use_nvidia_api: bool = False,
+) -> Dict[str, Any]:
+    """
+    Perform ASR (Automatic Speech Recognition) inference for a NIM using RIVA client.
+
+    Args:
+        nim_id: The NIM ID in format 'publisher/model_name'
+        request_data: The request payload from the frontend
+        inference_request: The InferenceRequest object to update
+        use_nvidia_api: Whether to use NVIDIA API instead of local NIM
+
+    Returns:
+        The response data from the NIM
+
+    Raises:
+        HTTPException: If inference fails
+    """
+    try:
+        # Validate NIM exists and get configuration
+        nim_data, nim_metadata = validate_nim_exists(nim_id)
+
+        # Get audio file path from request data
+        audio_file_path = request_data.get("audio_file_path")
+        if not audio_file_path or not os.path.exists(audio_file_path):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Audio file not found or path not provided"
+            )
+
+        logger.info(f"Performing ASR inference for {nim_id}")
+        logger.debug(f"NIM type: {nim_data.nim_type}")
+        logger.debug(f"NIM metadata: {nim_metadata}")
+        logger.debug(f"Audio file path: {audio_file_path}")
+
+        # Use RIVA client for ASR inference (following the working example)
+        try:
+            import riva.client
+            import grpc
+        except ImportError as import_error:
+            logger.error(f"Failed to import RIVA client: {import_error}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="RIVA client library not available"
+            )
+
+        # Handle NVIDIA API vs Local NIM differently
+        if use_nvidia_api:
+            # Use NVIDIA API gRPC endpoint (following the exact pattern from the example)
+            try:
+                import riva.client
+                import grpc
+            except ImportError as import_error:
+                logger.error(f"Failed to import RIVA client: {import_error}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="RIVA client library not available"
+                )
+
+            # Get NVIDIA API key
+            from nimkit.src.api.utils import get_nvidia_api_key
+            api_key = get_nvidia_api_key()
+
+            if not api_key:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="NVIDIA API key not configured. Please set your API key in the NVIDIA Config page."
+                )
+
+            # Configure RIVA client for NVIDIA API (following the exact pattern)
+            riva_uri = "grpc.nvcf.nvidia.com:443"
+
+            # Create auth with exact metadata format from the example
+            auth = riva.client.Auth(
+                uri=riva_uri,
+                use_ssl=True,
+                metadata_args=[
+                    ("function-id", "d8dd4e9b-fbf5-4fb0-9dba-8cf436c8d965"),
+                    ("authorization", f"Bearer {api_key}")
+                ]
+            )
+
+            logger.info(f"Connecting to NVIDIA API RIVA service at: {riva_uri}")
+
+            # Create RIVA client
+            try:
+                asr_service = riva.client.ASRService(auth)
+                logger.debug("NVIDIA API RIVA ASR client created successfully")
+
+                # Try to list available models to debug the connection
+                try:
+                    logger.debug("Attempting to list available ASR models...")
+                    config_response = asr_service.stub.GetRivaSpeechRecognitionConfig(
+                        riva.client.proto.riva_asr_pb2.RivaSpeechRecognitionConfigRequest()
+                    )
+                    logger.debug(f"Available models: {len(config_response.model_config)} models found")
+                    for i, model_config in enumerate(config_response.model_config):
+                        logger.debug(f"Model {i}: {model_config.model_name}, type: {model_config.parameters.get('type', 'unknown')}")
+                except Exception as model_error:
+                    logger.warning(f"Could not list models: {model_error}")
+
+            except Exception as client_error:
+                logger.error(f"Failed to create NVIDIA API RIVA client: {client_error}")
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=f"Failed to connect to NVIDIA API RIVA service: {str(client_error)}"
+                )
+
+            # Read audio file (following the working example - much simpler!)
+            try:
+                with open(audio_file_path, 'rb') as fh:
+                    audio_data = fh.read()
+                logger.debug(f"Read audio file: {len(audio_data)} bytes")
+
+                # Additional debugging - check if it's a valid WAV file
+                if audio_data.startswith(b'RIFF') and b'WAVE' in audio_data[:12]:
+                    logger.debug("Audio file appears to be a valid WAV file")
+
+                    # Try to read WAV header for debugging
+                    try:
+                        import wave
+                        import io
+                        with wave.open(io.BytesIO(audio_data), 'rb') as wav_file:
+                            channels = wav_file.getnchannels()
+                            sample_width = wav_file.getsampwidth()
+                            framerate = wav_file.getframerate()
+                            n_frames = wav_file.getnframes()
+                            duration = n_frames / framerate
+
+                            logger.debug(f"WAV file info: channels={channels}, sample_width={sample_width}, framerate={framerate}, n_frames={n_frames}, duration={duration:.2f}s")
+
+                            # Check if it meets RIVA requirements (16-bit mono)
+                            if sample_width == 2 and channels == 1:
+                                logger.debug("Audio format meets RIVA requirements (16-bit mono)")
+
+                                # Check audio levels (simple check for silence)
+                                try:
+                                    import numpy as np
+                                    audio_array = np.frombuffer(audio_data[44:], dtype=np.int16)  # Skip WAV header
+                                    max_level = np.max(np.abs(audio_array))
+                                    rms_level = np.sqrt(np.mean(audio_array.astype(np.float32)**2))
+
+                                    logger.debug(f"Audio levels: max={max_level}, rms={rms_level:.1f}")
+
+                                    if max_level < 100:
+                                        logger.warning("Audio appears to be very quiet (max level < 100)")
+                                    elif max_level < 1000:
+                                        logger.warning("Audio appears to be quiet (max level < 1000)")
+                                    else:
+                                        logger.debug("Audio levels appear normal")
+
+                                except Exception as level_error:
+                                    logger.warning(f"Could not check audio levels: {level_error}")
+                            else:
+                                logger.warning(f"Audio format may not be optimal for RIVA: {sample_width*8}-bit, {channels} channel(s)")
+
+                    except Exception as wav_error:
+                        logger.warning(f"Could not parse WAV header: {wav_error}")
+                else:
+                    logger.warning("Audio file does not appear to be a valid WAV file")
+                    logger.debug(f"First 20 bytes: {audio_data[:20]}")
+
+            except Exception as file_error:
+                logger.error(f"Failed to read audio file: {file_error}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Failed to read audio file: {str(file_error)}"
+                )
+
+            # Create recognition config (following the working example)
+            try:
+                config = riva.client.RecognitionConfig(
+                    language_code="en-US",
+                    enable_automatic_punctuation=True,
+                    enable_word_time_offsets=True,
+                    max_alternatives=1,
+                    profanity_filter=False,
+                    verbatim_transcripts=True
+                )
+                logger.debug(f"Recognition config created: language=en-US, automatic_punctuation=True, word_time_offsets=True, max_alternatives=1, profanity_filter=False, verbatim_transcripts=True")
+            except Exception as config_error:
+                logger.error(f"Failed to create recognition config: {config_error}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Failed to create recognition config: {str(config_error)}"
+                )
+
+            # Perform ASR inference (following the working example)
+            try:
+                logger.debug("Starting ASR inference with NVIDIA API RIVA client")
+                response = asr_service.offline_recognize(audio_data, config)
+                logger.info(f"ASR inference successful for {nim_id}")
+            except grpc.RpcError as e:
+                logger.error(f"ASR inference failed with gRPC error: {e.details()}")
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=f"ASR inference failed: {e.details()}"
+                )
+            except Exception as asr_error:
+                logger.error(f"ASR inference failed: {asr_error}")
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=f"ASR inference failed: {str(asr_error)}"
+                )
+
+            # Process gRPC response (same as local NIM)
+            response_data = {
+                "text": "",
+                "words": [],
+                "confidence": 0.0
+            }
+
+            # Extract results from response
+            logger.debug(f"RIVA response type: {type(response)}")
+            logger.debug(f"RIVA response attributes: {dir(response)}")
+
+            if hasattr(response, 'results') and response.results:
+                logger.debug(f"Number of results: {len(response.results)}")
+                for i, result in enumerate(response.results):
+                    logger.debug(f"Result {i} type: {type(result)}")
+                    logger.debug(f"Result {i} has alternatives: {hasattr(result, 'alternatives')}")
+                    if hasattr(result, 'alternatives'):
+                        logger.debug(f"Result {i} alternatives: {result.alternatives}")
+                        logger.debug(f"Result {i} alternatives length: {len(result.alternatives) if result.alternatives else 0}")
+
+                    if hasattr(result, 'alternatives') and result.alternatives:
+                        logger.debug(f"Number of alternatives: {len(result.alternatives)}")
+                        alternative = result.alternatives[0]
+                        logger.debug(f"Alternative transcript: '{alternative.transcript}'")
+                        logger.debug(f"Alternative confidence: {alternative.confidence}")
+
+                        response_data["text"] += alternative.transcript
+                        response_data["confidence"] = alternative.confidence
+
+                        # Extract word-level timestamps if available
+                        if hasattr(alternative, 'words') and alternative.words:
+                            logger.debug(f"Number of words: {len(alternative.words)}")
+                            for word in alternative.words:
+                                response_data["words"].append({
+                                    "word": word.word,
+                                    "start_time": word.start_time,
+                                    "end_time": word.end_time,
+                                    "confidence": word.confidence
+                                })
+                    else:
+                        logger.warning(f"Result {i} has no alternatives or empty alternatives")
+                        logger.debug(f"Result {i} content: {result}")
+            else:
+                logger.warning("No results found in RIVA response")
+                logger.debug(f"Response content: {response}")
+
+            logger.debug(f"Processed ASR response: {response_data}")
+
+        else:
+            # Use local NIM with gRPC (RIVA client)
+            try:
+                import riva.client
+                import grpc
+            except ImportError as import_error:
+                logger.error(f"Failed to import RIVA client: {import_error}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="RIVA client library not available"
+                )
+
+            # Configure RIVA client for local NIM
+            riva_uri = f"{nim_data.host}:50051"  # gRPC port
+            auth = riva.client.Auth(uri=riva_uri, use_ssl=False)
+
+            logger.info(f"Connecting to local RIVA service at: {riva_uri}")
+
+            # Create RIVA client
+            try:
+                asr_service = riva.client.ASRService(auth)
+                logger.debug("Local RIVA ASR client created successfully")
+
+                # Try to list available models to debug the connection
+                try:
+                    logger.debug("Attempting to list available local ASR models...")
+                    config_response = asr_service.stub.GetRivaSpeechRecognitionConfig(
+                        riva.client.proto.riva_asr_pb2.RivaSpeechRecognitionConfigRequest()
+                    )
+                    logger.debug(f"Available local models: {len(config_response.model_config)} models found")
+                    for i, model_config in enumerate(config_response.model_config):
+                        logger.debug(f"Local Model {i}: {model_config.model_name}, type: {model_config.parameters.get('type', 'unknown')}")
+                except Exception as model_error:
+                    logger.warning(f"Could not list local models: {model_error}")
+
+            except Exception as client_error:
+                logger.error(f"Failed to create local RIVA client: {client_error}")
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=f"Failed to connect to local RIVA service: {str(client_error)}"
+                )
+
+            # Read audio file
+            try:
+                with open(audio_file_path, 'rb') as fh:
+                    audio_data = fh.read()
+                logger.debug(f"Read audio file: {len(audio_data)} bytes")
+
+                # Additional debugging - check if it's a valid WAV file
+                if audio_data.startswith(b'RIFF') and b'WAVE' in audio_data[:12]:
+                    logger.debug("Audio file appears to be a valid WAV file")
+
+                    # Try to read WAV header for debugging
+                    try:
+                        import wave
+                        import io
+                        with wave.open(io.BytesIO(audio_data), 'rb') as wav_file:
+                            channels = wav_file.getnchannels()
+                            sample_width = wav_file.getsampwidth()
+                            framerate = wav_file.getframerate()
+                            n_frames = wav_file.getnframes()
+                            duration = n_frames / framerate
+
+                            logger.debug(f"Local WAV file info: channels={channels}, sample_width={sample_width}, framerate={framerate}, n_frames={n_frames}, duration={duration:.2f}s")
+
+                            # Check if it meets RIVA requirements (16-bit mono)
+                            if sample_width == 2 and channels == 1:
+                                logger.debug("Audio format meets RIVA requirements (16-bit mono)")
+
+                                # Check audio levels (simple check for silence)
+                                try:
+                                    import numpy as np
+                                    audio_array = np.frombuffer(audio_data[44:], dtype=np.int16)  # Skip WAV header
+                                    max_level = np.max(np.abs(audio_array))
+                                    rms_level = np.sqrt(np.mean(audio_array.astype(np.float32)**2))
+
+                                    logger.debug(f"Local audio levels: max={max_level}, rms={rms_level:.1f}")
+
+                                    if max_level < 100:
+                                        logger.warning("Local audio appears to be very quiet (max level < 100)")
+                                    elif max_level < 1000:
+                                        logger.warning("Local audio appears to be quiet (max level < 1000)")
+                                    else:
+                                        logger.debug("Local audio levels appear normal")
+
+                                except Exception as level_error:
+                                    logger.warning(f"Could not check local audio levels: {level_error}")
+                            else:
+                                logger.warning(f"Local audio format may not be optimal for RIVA: {sample_width*8}-bit, {channels} channel(s)")
+
+                    except Exception as wav_error:
+                        logger.warning(f"Could not parse local WAV header: {wav_error}")
+                else:
+                    logger.warning("Local audio file does not appear to be a valid WAV file")
+                    logger.debug(f"First 20 bytes: {audio_data[:20]}")
+
+            except Exception as file_error:
+                logger.error(f"Failed to read audio file: {file_error}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Failed to read audio file: {str(file_error)}"
+                )
+
+            # Create recognition config (matching NVIDIA API config)
+            try:
+                config = riva.client.RecognitionConfig(
+                    language_code="en-US",
+                    enable_automatic_punctuation=True,
+                    enable_word_time_offsets=True,
+                    max_alternatives=1,
+                    profanity_filter=False,
+                    verbatim_transcripts=True
+                )
+                logger.debug(f"Recognition config created: language=en-US, automatic_punctuation=True, word_time_offsets=True, max_alternatives=1, profanity_filter=False, verbatim_transcripts=True")
+            except Exception as config_error:
+                logger.error(f"Failed to create recognition config: {config_error}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Failed to create recognition config: {str(config_error)}"
+                )
+
+            # Perform ASR inference
+            try:
+                logger.debug("Starting ASR inference with RIVA client")
+                response = asr_service.offline_recognize(audio_data, config)
+                logger.info(f"ASR inference successful for {nim_id}")
+            except grpc.RpcError as e:
+                logger.error(f"ASR inference failed with gRPC error: {e.details()}")
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=f"ASR inference failed: {e.details()}"
+                )
+            except Exception as asr_error:
+                logger.error(f"ASR inference failed: {asr_error}")
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=f"ASR inference failed: {str(asr_error)}"
+                )
+
+            # Process gRPC response (existing code)
+            response_data = {
+                "text": "",
+                "words": [],
+                "confidence": 0.0
+            }
+
+            # Extract results from response
+            logger.debug(f"RIVA response type: {type(response)}")
+            logger.debug(f"RIVA response attributes: {dir(response)}")
+
+            if hasattr(response, 'results') and response.results:
+                logger.debug(f"Number of results: {len(response.results)}")
+                for i, result in enumerate(response.results):
+                    logger.debug(f"Result {i} type: {type(result)}")
+                    logger.debug(f"Result {i} has alternatives: {hasattr(result, 'alternatives')}")
+                    if hasattr(result, 'alternatives'):
+                        logger.debug(f"Result {i} alternatives: {result.alternatives}")
+                        logger.debug(f"Result {i} alternatives length: {len(result.alternatives) if result.alternatives else 0}")
+
+                    if hasattr(result, 'alternatives') and result.alternatives:
+                        logger.debug(f"Number of alternatives: {len(result.alternatives)}")
+                        alternative = result.alternatives[0]
+                        logger.debug(f"Alternative transcript: '{alternative.transcript}'")
+                        logger.debug(f"Alternative confidence: {alternative.confidence}")
+
+                        response_data["text"] += alternative.transcript
+                        response_data["confidence"] = alternative.confidence
+
+                        # Extract word-level timestamps if available
+                        if hasattr(alternative, 'words') and alternative.words:
+                            logger.debug(f"Number of words: {len(alternative.words)}")
+                            for word in alternative.words:
+                                response_data["words"].append({
+                                    "word": word.word,
+                                    "start_time": word.start_time,
+                                    "end_time": word.end_time,
+                                    "confidence": word.confidence
+                                })
+                    else:
+                        logger.warning(f"Result {i} has no alternatives or empty alternatives")
+                        logger.debug(f"Result {i} content: {result}")
+            else:
+                logger.warning("No results found in RIVA response")
+                logger.debug(f"Response content: {response}")
+
+            logger.debug(f"Processed ASR response: {response_data}")
+
+        # Update inference request with success
+        logger.debug("Updating InferenceRequest with success status")
+        inference_request.status = "completed"
+        inference_request.set_output(response_data)
+        inference_request.update_timestamp()
+        try:
+            inference_request.save()
+            logger.debug("InferenceRequest updated and saved successfully")
+        except Exception as save_error:
+            logger.error(f"Failed to save updated InferenceRequest: {save_error}")
+            logger.error(f"Save error type: {type(save_error).__name__}")
+            # Don't raise here, just log the error
+
+        return response_data
+
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        error_msg = f"Unexpected error during ASR inference for {nim_id}: {str(e)}"
+        logger.error(error_msg)
+
+        # Update inference request with unexpected error
+        inference_request.status = "error"
+        inference_request.set_error(
+            {"error": str(e), "nim_id": nim_id, "error_type": "UnexpectedError"}
+        )
+        inference_request.update_timestamp()
+        inference_request.save()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_msg
+        )
+
+
 async def perform_inference(
     nim_id: str,
     request_data: Dict[str, Any],
@@ -449,6 +927,10 @@ async def perform_inference(
         )
     elif nim_type == "3d":
         return await perform_3d_generation_inference(
+            nim_id, request_data, inference_request, use_nvidia_api
+        )
+    elif nim_type == "asr":
+        return await perform_asr_inference(
             nim_id, request_data, inference_request, use_nvidia_api
         )
     else:

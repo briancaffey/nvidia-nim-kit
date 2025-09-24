@@ -4,7 +4,7 @@ import json
 import logging
 import uuid
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from fastapi import APIRouter, HTTPException, Depends, status, Query
 from pydantic import BaseModel, field_validator
@@ -121,6 +121,20 @@ class TrellisGenerationRequest(BaseModel):
         return v
 
 
+class AsrRequest(BaseModel):
+    """Request body for ASR (Automatic Speech Recognition)."""
+
+    mode: str = "offline"
+    audio_file_path: Optional[str] = None
+
+    @field_validator("mode")
+    @classmethod
+    def validate_mode(cls, v):
+        if v not in ["offline"]:
+            raise ValueError("Mode must be 'offline'")
+        return v
+
+
 @router.post("/{publisher}/{model_name}")
 async def nim_inference(
     publisher: str,
@@ -176,6 +190,9 @@ async def nim_inference(
         elif nim_type == "3d":
             request_type = "3D_GENERATION"
             request_type_str = "3d_generation"
+        elif nim_type == "asr":
+            request_type = "ASR"
+            request_type_str = "asr"
         else:
             request_type = "UNKNOWN"
             request_type_str = "unknown"
