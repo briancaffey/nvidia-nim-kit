@@ -193,6 +193,9 @@ async def nim_inference(
         elif nim_type == "asr":
             request_type = "ASR"
             request_type_str = "asr"
+        elif nim_type == "speech_enhancement":
+            request_type = "SPEECH_ENHANCEMENT"
+            request_type_str = "speech_enhancement"
         else:
             request_type = "UNKNOWN"
             request_type_str = "unknown"

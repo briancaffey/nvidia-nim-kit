@@ -208,3 +208,4 @@ __marimo__/
 
 # Generated media files
 nimkit/media/
+!nimkit/media/**/.gitkeep

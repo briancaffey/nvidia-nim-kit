@@ -1,4 +1,4 @@
-"""ASR (Automatic Speech Recognition) API endpoints."""
+"""Speech Enhancement API endpoints for Studio Voice NIM."""
 
 import json
 import logging
@@ -21,87 +21,90 @@ from pydantic import BaseModel, field_validator
 
 from .llm.models import InferenceRequest
 from .utils import validate_nim_exists
-from .inference_utils import perform_asr_inference
+from .inference_utils import perform_speech_enhancement_inference
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/v0/asr", tags=["asr"])
+router = APIRouter(prefix="/v0/speech-enhancement", tags=["speech-enhancement"])
 
 
-class AsrRequest(BaseModel):
-    """Request body for ASR (Automatic Speech Recognition)."""
+class SpeechEnhancementRequest(BaseModel):
+    """Request body for Speech Enhancement."""
 
-    mode: str = "offline"
+    model_type: str = "48k-hq"
     audio_file_path: Optional[str] = None
 
-    @field_validator("mode")
+    @field_validator("model_type")
     @classmethod
-    def validate_mode(cls, v):
-        if v not in ["offline"]:
-            raise ValueError("Mode must be 'offline'")
+    def validate_model_type(cls, v):
+        if v not in ["48k-hq", "48k-ll", "16k-hq"]:
+            raise ValueError("Model type must be one of: '48k-hq', '48k-ll', '16k-hq'")
         return v
 
 
 @router.post("/{publisher}/{model_name}")
-async def asr_inference(
+async def speech_enhancement_inference(
     publisher: str,
     model_name: str,
     audio_file: UploadFile = File(...),
-    mode: str = Form(default="offline"),
+    model_type: str = Form(default="48k-hq"),
     use_nvidia_api: bool = Query(
         False, description="Use NVIDIA API instead of local NIM"
     ),
 ) -> Dict[str, Any]:
     """
-    Perform ASR inference on uploaded audio file.
+    Perform speech enhancement inference on uploaded audio file using Studio Voice NIM.
 
     Args:
         publisher: The publisher/namespace of the NIM
         model_name: The model name
         audio_file: The uploaded audio file
-        mode: ASR mode (currently only "offline" supported)
+        model_type: Studio Voice model type (48k-hq, 48k-ll, 16k-hq)
         use_nvidia_api: Whether to use NVIDIA API instead of local NIM
 
     Returns:
-        Serialized InferenceRequest object with ASR results
+        Serialized InferenceRequest object with speech enhancement results
     """
     # Form the NIM ID from publisher and model name
     nim_id = f"{publisher}/{model_name}"
 
-    logger.info(f"Starting ASR inference request for NIM: {nim_id}")
+    logger.info(f"Starting speech enhancement inference request for NIM: {nim_id}")
     logger.info(
         f"Audio file: {audio_file.filename}, Content-Type: {audio_file.content_type}"
     )
+    logger.info(f"Model type: {model_type}")
 
     try:
         # Validate NIM exists
         nim_data, nim_metadata = validate_nim_exists(nim_id)
 
-        # Check if this is an ASR NIM
+        # Check if this is a speech enhancement NIM
         nim_type = nim_metadata.get("type", "").lower()
         if not nim_type:
             nim_type = getattr(nim_data, "nim_type", "").lower()
 
-        if nim_type != "asr":
+        if nim_type != "speech_enhancement":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"NIM {nim_id} is not an ASR NIM (type: {nim_type})",
+                detail=f"NIM {nim_id} is not a speech enhancement NIM (type: {nim_type})",
             )
 
         # Generate UUID for the request
         request_id = str(uuid.uuid4())
         logger.debug(f"Generated request ID: {request_id}")
 
-        # Create media/asr directory if it doesn't exist
+        # Create media/studiovoice/input directory if it doesn't exist
         media_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "media"
         )
-        asr_dir = os.path.join(media_dir, "asr")
-        os.makedirs(asr_dir, exist_ok=True)
+        studiovoice_input_dir = os.path.join(media_dir, "studiovoice", "input")
+        studiovoice_output_dir = os.path.join(media_dir, "studiovoice", "output")
+        os.makedirs(studiovoice_input_dir, exist_ok=True)
+        os.makedirs(studiovoice_output_dir, exist_ok=True)
 
         # Save uploaded audio file
         audio_filename = f"{request_id}.wav"
-        audio_path = os.path.join(asr_dir, audio_filename)
+        audio_path = os.path.join(studiovoice_input_dir, audio_filename)
 
         logger.info(f"Saving audio file to: {audio_path}")
         try:
@@ -120,8 +123,8 @@ async def asr_inference(
         inference_request = InferenceRequest(
             request_id=request_id,
             input_json="",  # Initialize as empty string
-            type="ASR",
-            request_type="asr",
+            type="SPEECH_ENHANCEMENT",
+            request_type="speech_enhancement",
             nim_id=nim_id,
             model=model_name,
             stream="false",
@@ -131,7 +134,7 @@ async def asr_inference(
 
         # Set input data
         request_data = {
-            "mode": mode,
+            "model_type": model_type,
             "audio_file_path": audio_path,
             "filename": audio_file.filename,
             "content_type": audio_file.content_type,
@@ -140,10 +143,12 @@ async def asr_inference(
         inference_request.set_input(request_data)
         inference_request.save()
 
-        logger.info(f"Created ASR inference request {request_id} for NIM {nim_id}")
+        logger.info(
+            f"Created speech enhancement inference request {request_id} for NIM {nim_id}"
+        )
 
-        # Perform ASR inference
-        response_data = await perform_asr_inference(
+        # Perform speech enhancement inference
+        response_data = await perform_speech_enhancement_inference(
             nim_id, request_data, inference_request, use_nvidia_api
         )
 
@@ -176,7 +181,9 @@ async def asr_inference(
         # Re-raise HTTP exceptions as-is
         raise
     except Exception as e:
-        logger.error(f"Unexpected error in ASR inference endpoint: {str(e)}")
+        logger.error(
+            f"Unexpected error in speech enhancement inference endpoint: {str(e)}"
+        )
         logger.error(f"Error type: {type(e).__name__}")
         logger.error(f"Error details: {repr(e)}")
         import traceback

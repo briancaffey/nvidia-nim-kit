@@ -1,5 +1,5 @@
 <template>
-  <Card class="h-full bg-white dark:bg-[#0a0a0a] rounded-lg">
+  <Card class="h-full bg-white dark:bg-[#0a0a0a] rounded-lg group">
     <CardHeader class="pb-0">
       <div class="flex items-start justify-between">
         <div class="space-y-1">
@@ -7,30 +7,38 @@
             {{ request.nim_id }}
           </CardTitle>
         </div>
-        <!-- Green checkmark for completed status with delete button on hover -->
-        <div v-if="request.status === 'completed'" class="text-green-500 group relative">
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-          </svg>
+        <!-- Status indicator that hides on hover, delete button that shows on hover -->
+        <div class="relative">
+          <!-- Green checkmark for completed status -->
+          <div v-if="request.status === 'completed'" class="text-green-500 group-hover:opacity-0 transition-opacity duration-200">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <!-- Badge for other statuses -->
+          <Badge v-else :variant="statusVariant" class="group-hover:opacity-0 transition-opacity duration-200">
+            {{ request.status }}
+          </Badge>
+
           <!-- Delete button that appears on hover -->
           <button
             @click="handleDelete"
             :disabled="isDeleting"
-            class="absolute -top-1 -right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 disabled:opacity-50"
+            class="absolute top-0 right-0 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 disabled:opacity-50 shadow-lg"
             title="Delete this request"
           >
             <svg
               v-if="!isDeleting"
-              class="w-3 h-3"
+              class="w-4 h-4"
               fill="currentColor"
-              viewBox="0 0 20 20"
+              viewBox="0 0 24 24"
             >
-              <path fill-rule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clip-rule="evenodd" />
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+              <path d="M3 6h18l-2 13H5L3 6zM8 4v2H6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h-2V4H8zM5 6l2 13h10l2-13H5z"/>
+              <path d="M10 9v6M14 9v6"/>
             </svg>
             <svg
               v-else
-              class="w-3 h-3 animate-spin"
+              class="w-4 h-4 animate-spin"
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -39,9 +47,6 @@
             </svg>
           </button>
         </div>
-        <Badge v-else :variant="statusVariant">
-          {{ request.status }}
-        </Badge>
       </div>
     </CardHeader>
 
@@ -57,6 +62,12 @@
         <!-- Trellis (3D Model Generation) -->
         <TrellisCard
           v-else-if="isTrellisNim"
+          :request="request"
+        />
+
+        <!-- Studio Voice (Speech Enhancement) -->
+        <StudioVoiceCard
+          v-else-if="isStudioVoiceNim"
           :request="request"
         />
 
@@ -94,6 +105,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import SchnellCard from './SchnellCard.vue'
 import TrellisCard from './TrellisCard.vue'
+import StudioVoiceCard from './StudioVoiceCard.vue'
 
 // Props
 interface Props {
@@ -134,6 +146,12 @@ const isTrellisNim = computed(() => {
   return props.request.nim_id.includes('trellis') ||
          props.request.type === '3D_GENERATION' ||
          props.request.request_type === '3d_generation'
+})
+
+const isStudioVoiceNim = computed(() => {
+  return props.request.nim_id.includes('studiovoice') ||
+         props.request.type === 'SPEECH_ENHANCEMENT' ||
+         props.request.request_type === 'speech_enhancement'
 })
 
 const statusVariant = computed(() => {

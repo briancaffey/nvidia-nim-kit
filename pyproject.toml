@@ -41,7 +41,11 @@ dependencies = [
     "nvidia-riva-client==2.19.0",
     "openai==1.109.0",
     "python-multipart>=0.0.20",
-    "scipy>=1.10.0"
+    "scipy>=1.10.0",
+    "grpcio==1.67.1",
+    "grpcio-tools==1.67.1",
+    "soundfile==0.12.1",
+    "protobuf>=4.21.0"
 ]
 
 [project.optional-dependencies]

@@ -87,6 +87,11 @@
       <div v-else-if="isAsrModel">
         <RivaAsrGeneration :nim-id="nimId" />
       </div>
+
+      <!-- Studio Voice Generation Component -->
+      <div v-else-if="isStudioVoiceModel">
+        <StudioVoiceGeneration :nim-id="nimId" />
+      </div>
     </div>
     </div>
   </div>
@@ -96,6 +101,7 @@
 import FluxSchnellGeneration from '~/components/FluxSchnellGeneration.vue'
 import TrellisGeneration from '~/components/TrellisGeneration.vue'
 import RivaAsrGeneration from '~/components/RivaAsrGeneration.vue'
+import StudioVoiceGeneration from '~/components/StudioVoiceGeneration.vue'
 
 interface NIM {
   id: string
@@ -141,6 +147,11 @@ const isTrellisModel = computed(() => {
 // Check if this is an ASR model
 const isAsrModel = computed(() => {
   return nimId.value === 'nvidia/parakeet-ctc-0_6b-asr'
+})
+
+// Check if this is a Studio Voice model
+const isStudioVoiceModel = computed(() => {
+  return nimId.value === 'nvidia/studiovoice'
 })
 
 const fetchNimDetails = async () => {

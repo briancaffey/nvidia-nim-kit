@@ -15,6 +15,7 @@ from nimkit.src.api.llm.metrics_api import router as metrics_router
 from nimkit.src.api.config.routes import router as nims_router
 from nimkit.src.api.nims_inference import router as nims_inference_router
 from nimkit.src.api.asr import router as asr_router
+from nimkit.src.api.speech_enhancement import router as speech_enhancement_router
 from nimkit.src.api.gallery import router as gallery_router
 from nimkit.src.api.image_conversion import router as image_conversion_router
 from nimkit.src.api.nvidia_api import router as nvidia_api_router
@@ -66,6 +67,9 @@ app.include_router(nims_inference_router)
 
 # Include ASR routes
 app.include_router(asr_router)
+
+# Include speech enhancement routes
+app.include_router(speech_enhancement_router)
 
 # Include gallery routes
 app.include_router(gallery_router)

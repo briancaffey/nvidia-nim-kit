@@ -283,6 +283,56 @@ const loadInferenceRequests = async () => {
   }
 }
 
+const loadInferenceRequestsSilently = async () => {
+  // Same logic as loadInferenceRequests but without setting isLoading
+  error.value = ''
+
+  try {
+    // Build query parameters
+    const params = new URLSearchParams({
+      limit: pagination.limit.value.toString(),
+      offset: pagination.offset.value.toString()
+    })
+
+    if (searchTerm.value.trim()) {
+      params.append('search', searchTerm.value.trim())
+    }
+
+    if (selectedNimIds.value.length > 0) {
+      params.append('nim_ids', selectedNimIds.value.join(','))
+    }
+
+    const url = `${apiBase}/api/gallery/inference-requests?${params}`
+    console.log('Making silent request to:', url)
+
+    const response = await fetch(url)
+    console.log('Silent response status:', response.status)
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    console.log('Received silent data:', data)
+
+    // Store raw data for debugging
+    rawData.value = JSON.stringify(data, null, 2)
+
+    inferenceRequests.value = data.results || []
+
+    // Update pagination total from API response
+    if (data.pagination) {
+      pagination.setTotal(data.pagination.total_count)
+    }
+
+  } catch (err) {
+    console.error('Error loading inference requests silently:', err)
+    error.value = `Failed to load inference requests: ${err}`
+    inferenceRequests.value = []
+  }
+}
+
 const loadAvailableNimIds = async () => {
   try {
     console.log('Loading available NIM IDs from catalog...')
@@ -318,10 +368,10 @@ const clearFilters = () => {
   loadInferenceRequests()
 }
 
-const handleRequestDeleted = (requestId: string) => {
+const handleRequestDeleted = async (requestId: string) => {
   console.log('Request deleted:', requestId)
-  // Reload the gallery data to reflect the deletion
-  loadInferenceRequests()
+  // Reload the gallery data to reflect the deletion without showing loading state
+  await loadInferenceRequestsSilently()
 }
 
 // Watch for changes in selected NIM IDs

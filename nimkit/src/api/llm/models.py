@@ -44,10 +44,13 @@ class InferenceRequest(HashModel):
     audio_file_path: Optional[str] = Field(
         default=None, description="Path to uploaded audio file for ASR requests"
     )
+    output_audio_path: Optional[str] = Field(
+        default=None,
+        description="Path to generated output audio file for speech enhancement requests",
+    )
     # TODO: add field for inference duration in ms
     # TODO: add field for generated image file path
     # TODO: add field for generated 3D model file path
-    # TODO: add field for generated audio file path
 
     class Meta:
         database = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
