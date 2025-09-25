@@ -1,0 +1,47 @@
+groups:
+  - name: nim-llm-alerts
+    rules:
+      - alert: HighKVCacheUsage
+        expr: gpu_cache_usage_perc > 0.90
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "KV cache utilization high (>90%)"
+          description: "gpu_cache_usage_perc is {{ $value }}"
+
+      - alert: RequestsBackingUp
+        expr: avg_over_time(num_requests_waiting[2m]) > 2
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "LLM requests are backing up"
+          description: "Average waiting requests > 2 for 3m"
+
+      - alert: SlowTTFTp90
+        expr: histogram_quantile(0.9, sum by (le) (rate(time_to_first_token_seconds_bucket[2m]))) > 1.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p90 Time to First Token"
+          description: "TTFT p90 > 1.5s for 5m"
+
+      - alert: HighErrorRate
+        expr: rate(request_error_total[5m]) / rate(request_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }}"
+
+      - alert: LowThroughput
+        expr: rate(generation_tokens_total[5m]) < 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low token generation throughput"
+          description: "Throughput is {{ $value }} tokens/sec"
