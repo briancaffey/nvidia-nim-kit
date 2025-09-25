@@ -75,79 +75,11 @@
       </Card>
 
       <!-- Add New NIM Form -->
-      <Card>
-        <CardHeader>
-          <CardTitle class="flex items-center gap-2">
-            <Icon name="lucide:plus" class="h-5 w-5" />
-            Add New NIM
-          </CardTitle>
-          <CardDescription>
-            Configure a new NVIDIA Inference Microservice
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form @submit.prevent="addNim" class="space-y-4">
-            <div>
-              <Label for="nim-id">NIM ID</Label>
-              <Input
-                id="nim-id"
-                v-model="formData.nim_id"
-                placeholder="e.g., meta/llama-3_1-8b-instruct"
-                required
-                class="mt-1"
-              />
-              <p class="text-sm text-muted-foreground mt-1">
-                Unique identifier for the NIM
-              </p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label for="host">Host Address</Label>
-                <Input
-                  id="host"
-                  v-model="formData.host"
-                  placeholder="e.g., localhost or 192.168.1.100"
-                  required
-                  class="mt-1"
-                />
-              </div>
-              <div>
-                <Label for="port">Port Number</Label>
-                <Input
-                  id="port"
-                  v-model.number="formData.port"
-                  type="number"
-                  placeholder="e.g., 8000"
-                  min="1"
-                  max="65535"
-                  required
-                  class="mt-1"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label for="nim-type">NIM Type</Label>
-              <Select v-model="formData.nim_type" required>
-                <SelectTrigger class="mt-1">
-                  <SelectValue placeholder="Select NIM type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="option in nimTypeOptions" :key="option.value" :value="option.value">
-                    {{ option.label }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Button type="submit" :disabled="isSaving || !isFormValid" class="w-full">
-              <Icon name="lucide:plus" class="mr-2 h-4 w-4" />
-              {{ isSaving ? 'Adding...' : 'Add NIM Configuration' }}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      <NIMConfigForm
+        @submit="handleFormSubmit"
+        @success="handleFormSuccess"
+        @error="handleFormError"
+      />
     </div>
 
     <!-- Status Messages -->
@@ -162,7 +94,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
+import NIMConfigForm from '~/components/NIMConfigForm.vue'
 
 // Types
 interface NIMConfig {
@@ -183,42 +116,13 @@ interface NIMFormData {
 // Reactive state
 const configuredNims = ref<NIMConfig[]>([])
 const isLoading = ref(false)
-const isSaving = ref(false)
 const isDeleting = ref(false)
-
-// Form data
-const formData = ref<NIMFormData>({
-  nim_id: '',
-  host: '',
-  port: 8000,
-  nim_type: 'llm'
-})
 
 // Status messages
 const statusMessage = ref('')
 const statusType = ref<'default' | 'destructive'>('default')
 const statusTitle = ref('')
 const statusIcon = ref('')
-
-// NIM type options
-const nimTypeOptions = [
-  { value: 'llm', label: 'LLM (Large Language Model)' },
-  { value: 'image_gen', label: 'Image Generation' },
-  { value: '3d', label: '3D Generation' },
-  { value: 'asr', label: 'Automatic Speech Recognition' },
-  { value: 'tts', label: 'Text-to-Speech' },
-  { value: 'studio_voice', label: 'Studio Voice' },
-  { value: 'document', label: 'Document Processing' }
-]
-
-// Computed properties
-const isFormValid = computed(() => {
-  return formData.value.nim_id.trim() !== '' &&
-         formData.value.host.trim() !== '' &&
-         formData.value.port > 0 &&
-         formData.value.port <= 65535 &&
-         formData.value.nim_type.trim() !== ''
-})
 
 // API configuration
 const config = useRuntimeConfig()
@@ -268,28 +172,17 @@ const loadConfiguredNims = async () => {
   }
 }
 
-const addNim = async () => {
-  if (!isFormValid.value) return
-
-  const nimId = formData.value.nim_id
-  isSaving.value = true
+const handleFormSubmit = async (formData: NIMFormData) => {
+  const nimId = formData.nim_id
   try {
     await apiCall(`/api/nims/${encodeURIComponent(nimId)}`, {
       method: 'POST',
       body: JSON.stringify({
-        host: formData.value.host,
-        port: formData.value.port,
-        nim_type: formData.value.nim_type
+        host: formData.host,
+        port: formData.port,
+        nim_type: formData.nim_type
       })
     })
-
-    // Reset form
-    formData.value = {
-      nim_id: '',
-      host: '',
-      port: 8000,
-      nim_type: 'llm'
-    }
 
     // Reload the list
     await loadConfiguredNims()
@@ -297,9 +190,15 @@ const addNim = async () => {
     showStatus('success', 'NIM Added', `Successfully added configuration for ${nimId}`)
   } catch (error) {
     showStatus('error', 'Add Failed', error instanceof Error ? error.message : 'Failed to add NIM configuration')
-  } finally {
-    isSaving.value = false
   }
+}
+
+const handleFormSuccess = (nimId: string) => {
+  showStatus('success', 'NIM Added', `Successfully added configuration for ${nimId}`)
+}
+
+const handleFormError = (error: string) => {
+  showStatus('error', 'Add Failed', error)
 }
 
 const deleteNim = async (nimId: string) => {
@@ -325,6 +224,15 @@ const deleteNim = async (nimId: string) => {
 }
 
 const getNimTypeLabel = (nimType: string) => {
+  const nimTypeOptions = [
+    { value: 'llm', label: 'LLM (Large Language Model)' },
+    { value: 'image_gen', label: 'Image Generation' },
+    { value: '3d', label: '3D Generation' },
+    { value: 'asr', label: 'Automatic Speech Recognition' },
+    { value: 'tts', label: 'Text-to-Speech' },
+    { value: 'studio_voice', label: 'Studio Voice' },
+    { value: 'document', label: 'Document Processing' }
+  ]
   const option = nimTypeOptions.find(opt => opt.value === nimType)
   return option ? option.label : nimType
 }

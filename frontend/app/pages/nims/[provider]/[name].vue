@@ -92,6 +92,65 @@
       <div v-else-if="isStudioVoiceModel">
         <StudioVoiceGeneration :nim-id="nimId" />
       </div>
+
+      <!-- NIM Configuration Form (when no config exists) -->
+      <div v-else-if="!nimConfig && !isConfiguring" class="mb-8">
+        <NIMConfigForm
+          :nim-id="nimId"
+          :nim-id-disabled="true"
+          title="Configure This NIM"
+          description="This NIM is not yet configured. Please provide connection details to use it."
+          submit-text="Configure NIM"
+          @submit="handleConfigSubmit"
+          @success="handleConfigSuccess"
+          @error="handleConfigError"
+        />
+      </div>
+
+      <!-- Success Message -->
+      <div v-if="configSuccessMessage" class="mb-8">
+        <Alert variant="default">
+          <Icon name="lucide:check-circle" class="h-4 w-4" />
+          <AlertTitle>NIM Configured Successfully!</AlertTitle>
+          <AlertDescription>{{ configSuccessMessage }}</AlertDescription>
+        </Alert>
+      </div>
+
+      <!-- Fallback Form for Unimplemented NIMs -->
+      <div v-if="nimConfig && !isFluxModel && !isTrellisModel && !isAsrModel && !isStudioVoiceModel" class="mb-8">
+        <Card>
+          <CardHeader>
+            <CardTitle class="flex items-center gap-2">
+              <Icon name="lucide:info" class="h-5 w-5" />
+              NIM Interface Not Yet Implemented
+            </CardTitle>
+            <CardDescription>
+              This NIM is configured but doesn't have a custom interface yet. You can still use it via API calls.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div class="space-y-4">
+              <div class="p-4 bg-muted rounded-lg">
+                <h4 class="font-medium mb-2">Connection Details:</h4>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span class="text-muted-foreground">Host:</span>
+                    <span class="ml-1 font-mono">{{ nimConfig.host }}</span>
+                  </div>
+                  <div>
+                    <span class="text-muted-foreground">Port:</span>
+                    <span class="ml-1 font-mono">{{ nimConfig.port }}</span>
+                  </div>
+                </div>
+              </div>
+              <p class="text-sm text-muted-foreground">
+                This NIM is ready to use! You can make API calls to <code class="bg-muted px-1 rounded">{{ nimConfig.host }}:{{ nimConfig.port }}</code>
+                or use it programmatically in your applications.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
     </div>
   </div>
@@ -102,6 +161,7 @@ import FluxSchnellGeneration from '~/components/FluxSchnellGeneration.vue'
 import TrellisGeneration from '~/components/TrellisGeneration.vue'
 import RivaAsrGeneration from '~/components/RivaAsrGeneration.vue'
 import StudioVoiceGeneration from '~/components/StudioVoiceGeneration.vue'
+import NIMConfigForm from '~/components/NIMConfigForm.vue'
 
 interface NIM {
   id: string
@@ -121,6 +181,8 @@ const nim = ref<NIM | null>(null)
 const nimConfig = ref<{host: string, port: number} | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
+const isConfiguring = ref(false)
+const configSuccessMessage = ref('')
 
 // Extract provider and name from the route
 const provider = computed(() => route.params.provider as string)
@@ -194,6 +256,48 @@ const formatDate = (dateString: string) => {
   } catch {
     return dateString
   }
+}
+
+// Configuration handlers
+const handleConfigSubmit = async (formData: {nim_id: string, host: string, port: number, nim_type: string}) => {
+  isConfiguring.value = true
+  try {
+    await $fetch(`${config.public.apiBase}/api/nims/${encodeURIComponent(formData.nim_id)}`, {
+      method: 'POST',
+      body: {
+        host: formData.host,
+        port: formData.port,
+        nim_type: formData.nim_type
+      }
+    })
+
+    // Reload the config
+    await fetchNimConfig()
+
+    // Show success message
+    configSuccessMessage.value = `Successfully configured ${formData.nim_id} at ${formData.host}:${formData.port}`
+
+    // Hide success message after 5 seconds
+    setTimeout(() => {
+      configSuccessMessage.value = ''
+    }, 5000)
+  } catch (err) {
+    console.error('Failed to configure NIM:', err)
+    // Error handling is done by the form component
+  } finally {
+    isConfiguring.value = false
+  }
+}
+
+const handleConfigSuccess = (nimId: string) => {
+  configSuccessMessage.value = `Successfully configured ${nimId}`
+  setTimeout(() => {
+    configSuccessMessage.value = ''
+  }, 5000)
+}
+
+const handleConfigError = (error: string) => {
+  console.error('Configuration error:', error)
 }
 
 // Fetch NIM details on component mount
