@@ -392,6 +392,9 @@ interface Props {
 
 const props = defineProps<Props>()
 
+// NIM data from catalog
+const nimData = ref<{id: string, model?: string, type: string} | null>(null)
+
 // Check if NIM is configured
 const nimConfig = ref<{host: string, port: number, nim_type?: string} | null>(null)
 const isNimConfigured = computed(() => !!nimConfig.value)
@@ -470,6 +473,18 @@ const shouldShowTokenVisualization = computed(() => {
 })
 
 // Methods
+const fetchNimData = async () => {
+  try {
+    const response = await fetch(`${apiBase}/api/nims/catalog/${encodeURIComponent(props.nimId)}`)
+    if (response.ok) {
+      const data = await response.json()
+      nimData.value = data
+    }
+  } catch (err) {
+    console.error('Failed to fetch NIM data:', err)
+  }
+}
+
 const fetchNimConfig = async () => {
   try {
     const response = await fetch(`${apiBase}/api/nims/config/${encodeURIComponent(props.nimId)}`)
@@ -529,23 +544,17 @@ const loadModels = async () => {
       // Force chat mode since NVIDIA API doesn't support completions
       mode.value = 'chat'
     } else {
-      // Get NIM data to find host and port for local NIM
-      const nimRes = await fetch(`${apiBase}/api/nims/${encodeURIComponent(props.nimId)}`)
-      if (!nimRes.ok) throw new Error('Failed to get NIM data')
-      const nimData = await nimRes.json()
-
-      // Get models from local NIM
-      const modelsRes = await fetch(`http://${nimData.host}:${nimData.port}/v1/models`)
-      if (!modelsRes.ok) throw new Error('Failed to load models from NIM')
-      const modelsData = await modelsRes.json()
-
-      // Auto-populate the first model
-      if (modelsData.data && modelsData.data.length > 0) {
-        config.value.model = modelsData.data[0].id
+      // Use model from NIM catalog data if available
+      if (nimData.value?.model) {
+        config.value.model = nimData.value.model
+      } else {
+        // Fallback to NIM ID if no model field is specified
+        config.value.model = props.nimId
       }
     }
   } catch (err) {
-    error.value = `Failed to load models: ${err}`
+    console.error('Failed to load models:', err)
+    // Don't set error here since we're not fetching from API anymore
   } finally {
     isLoadingModels.value = false
   }
@@ -751,6 +760,7 @@ const enableNvidiaApi = async () => {
       // Force chat mode since NVIDIA API doesn't support completions
       mode.value = 'chat'
       // Refresh the config to see if it's now available
+      await fetchNimData()
       await fetchNimConfig()
       if (isNimConfigured.value) {
         await loadModels()
@@ -786,6 +796,7 @@ const configureLocalNim = async () => {
       successMessage.value = `Successfully configured ${props.nimId} at ${localConfig.value.host}:${localConfig.value.port}`
       showConfigForm.value = false
       // Refresh the config
+      await fetchNimData()
       await fetchNimConfig()
       if (isNimConfigured.value) {
         await loadModels()
@@ -825,6 +836,7 @@ onMounted(async () => {
     isNvidiaApiEnabled.value = false
   }
 
+  await fetchNimData()
   await fetchNimConfig()
   if (isNimConfigured.value) {
     await loadModels()

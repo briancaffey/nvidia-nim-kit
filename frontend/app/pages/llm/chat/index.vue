@@ -249,6 +249,7 @@ const apiBase = runtimeConfig.public.apiBase
 // Reactive state
 const selectedNimId = ref('')
 const nimIds = ref<string[]>([])
+const nimDataMap = ref<Map<string, {id: string, model?: string, type: string}>>(new Map())
 const isLoading = ref(false)
 const isLoadingModels = ref(false)
 const error = ref('')
@@ -301,6 +302,20 @@ const shouldShowTokenVisualization = computed(() => {
 })
 
 // Methods
+const fetchNimData = async (nimId: string) => {
+  try {
+    const response = await fetch(`${apiBase}/api/nims/catalog/${encodeURIComponent(nimId)}`)
+    if (response.ok) {
+      const data = await response.json()
+      nimDataMap.value.set(nimId, data)
+      return data
+    }
+  } catch (err) {
+    console.error(`Failed to fetch NIM data for ${nimId}:`, err)
+  }
+  return null
+}
+
 const loadNims = async () => {
   try {
     const res = await fetch(`${apiBase}/api/nims/`)
@@ -317,6 +332,8 @@ const loadNims = async () => {
           const nimConfig = await nimRes.json()
           if (nimConfig.nim_type === 'llm') {
             llmNimIds.push(nimId)
+            // Fetch NIM catalog data for this LLM
+            await fetchNimData(nimId)
           }
         }
       } catch (err) {
@@ -352,30 +369,29 @@ const loadModels = async (nimId: string) => {
       // The model name should be the NIM ID itself (e.g., "nvidia/llama-3.1-8b-instruct")
       config.value.model = nimId
     } else {
-      // Get NIM data to find host and port for local NIM
-      const nimRes = await fetch(`${apiBase}/api/nims/${encodeURIComponent(nimId)}`)
-      if (!nimRes.ok) throw new Error('Failed to get NIM data')
-      const nimData = await nimRes.json()
-
-      // Get models from local NIM
-      const modelsRes = await fetch(`http://${nimData.host}:${nimData.port}/v1/models`)
-      if (!modelsRes.ok) throw new Error('Failed to load models from NIM')
-      const modelsData = await modelsRes.json()
-
-      // Auto-populate the first model
-      if (modelsData.data && modelsData.data.length > 0) {
-        config.value.model = modelsData.data[0].id
+      // Use model from NIM catalog data if available
+      const nimData = nimDataMap.value.get(nimId)
+      if (nimData?.model) {
+        config.value.model = nimData.model
+      } else {
+        // Fallback to NIM ID if no model field is specified
+        config.value.model = nimId
       }
     }
   } catch (err) {
-    error.value = `Failed to load models: ${err}`
+    console.error('Failed to load models:', err)
+    // Don't set error here since we're not fetching from API anymore
   } finally {
     isLoadingModels.value = false
   }
 }
 
-const onNimChange = (nimId: any) => {
+const onNimChange = async (nimId: any) => {
   if (nimId && typeof nimId === 'string') {
+    // Fetch NIM data if not already cached
+    if (!nimDataMap.value.has(nimId)) {
+      await fetchNimData(nimId)
+    }
     loadModels(nimId)
   }
 }
