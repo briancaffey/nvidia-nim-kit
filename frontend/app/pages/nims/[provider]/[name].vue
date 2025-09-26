@@ -204,7 +204,8 @@ const imageUrl = computed(() => {
 // Check if this is a Flux model
 const isFluxModel = computed(() => {
   return nimId.value === 'black-forest-labs/flux_1-schnell' ||
-         nimId.value === 'black-forest-labs/flux_1-dev'
+         nimId.value === 'black-forest-labs/flux_1-dev' ||
+         nimId.value === 'black-forest-labs/flux_1-kontext-dev'
 })
 
 // Check if this is a Trellis model

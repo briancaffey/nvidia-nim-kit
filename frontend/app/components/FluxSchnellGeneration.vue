@@ -3,12 +3,10 @@
     <!-- Header -->
     <div class="mb-8">
       <h1 class="text-3xl font-bold mb-2">
-        {{ nimId === 'black-forest-labs/flux_1-schnell' ? 'Flux Schnell Image Generation' : 'Flux Dev Image Generation' }}
+        {{ getModelTitle() }}
       </h1>
       <p class="text-muted-foreground">
-        {{ nimId === 'black-forest-labs/flux_1-schnell'
-           ? 'Generate high-quality images using FLUX.1-schnell model'
-           : 'Generate high-quality images using FLUX.1-dev model with advanced features' }}
+        {{ getModelDescription() }}
       </p>
     </div>
 
@@ -55,13 +53,13 @@
               </div>
               <Slider
                 v-model="stepsValue"
-                :min="isFluxSchnell ? 1 : 5"
-                :max="isFluxSchnell ? 4 : 50"
+                :min="getStepsMin()"
+                :max="getStepsMax()"
                 :step="1"
                 class="w-full"
               />
               <p class="text-sm text-muted-foreground">
-                Number of denoising steps ({{ isFluxSchnell ? '1-4' : '5-50' }})
+                Number of denoising steps ({{ getStepsRange() }})
               </p>
             </div>
 
@@ -79,14 +77,12 @@
                 :disabled="isFluxSchnell"
               />
               <p class="text-sm text-muted-foreground">
-                {{ isFluxSchnell
-                   ? 'CFG Scale is fixed at 0 for Flux Schnell model'
-                   : 'Classifier-free guidance scale (default: 0)' }}
+                {{ getCfgScaleDescription() }}
               </p>
             </div>
 
             <!-- Mode Selection -->
-            <div v-if="!isFluxSchnell" class="space-y-2">
+            <div v-if="!isFluxSchnell && !isFluxKontext" class="space-y-2">
               <Label for="mode">Mode</Label>
               <Select v-model="formData.mode">
                 <SelectTrigger>
@@ -101,11 +97,43 @@
               <p class="text-sm text-muted-foreground">
                 Generation mode: base (text-to-image), canny (edge-guided), depth (depth-guided)
               </p>
+
+              <!-- NVIDIA API Warning for Guidance Images -->
+              <div v-if="useNvidiaApi && (formData.mode === 'canny' || formData.mode === 'depth')" class="mt-3 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <div class="flex items-start gap-2">
+                  <Icon name="lucide:alert-triangle" class="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                  <div class="text-sm">
+                    <p class="font-medium text-amber-800 dark:text-amber-200 mb-1">
+                      NVIDIA Cloud API Limitation
+                    </p>
+                    <p class="text-amber-700 dark:text-amber-300">
+                      The NVIDIA Cloud API doesn't support {{ formData.mode }} mode for Flux Dev.
+                      Switch to local NIM to use guidance images, or use "base" mode for text-to-image generation.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <!-- Image Upload for Canny/Depth modes -->
-            <div v-if="formData.mode === 'canny' || formData.mode === 'depth'" class="space-y-2">
-              <Label for="image">Reference Image</Label>
+            <!-- Aspect Ratio Selection for Flux Kontext -->
+            <div v-if="isFluxKontext" class="space-y-2">
+              <Label for="aspect-ratio">Aspect Ratio</Label>
+              <Select v-model="formData.aspect_ratio">
+                <SelectTrigger>
+                  <SelectValue placeholder="Select aspect ratio" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="match_input_image">Match Input Image</SelectItem>
+                </SelectContent>
+              </Select>
+              <p class="text-sm text-muted-foreground">
+                Aspect ratio for the generated image (Flux Kontext only)
+              </p>
+            </div>
+
+            <!-- Image Upload for Canny/Depth modes and Flux Kontext -->
+            <div v-if="(formData.mode === 'canny' || formData.mode === 'depth') || isFluxKontext" class="space-y-2">
+              <Label for="image">{{ isFluxKontext ? 'Input Image' : 'Reference Image' }}</Label>
               <div class="space-y-2">
                 <Input
                   id="image"
@@ -115,7 +143,9 @@
                   class="cursor-pointer"
                 />
                 <p class="text-sm text-muted-foreground">
-                  Upload an image for {{ formData.mode }} mode. Image will be automatically resized to supported dimensions.
+                  {{ isFluxKontext
+                     ? 'Upload an image for in-context generation. Image will be automatically resized to supported dimensions.'
+                     : `Upload an image for ${formData.mode} mode. Image will be automatically resized to supported dimensions.` }}
                 </p>
 
                 <!-- Image Preview and Conversion Controls -->
@@ -134,7 +164,7 @@
                   </div>
 
                   <!-- Canny Edge Parameters -->
-                  <div v-if="formData.mode === 'canny'" class="space-y-4">
+                  <div v-if="formData.mode === 'canny' && !isFluxKontext" class="space-y-4">
                     <h4 class="text-sm font-medium">Canny Edge Detection Parameters</h4>
 
                     <!-- Lower Threshold -->
@@ -219,7 +249,7 @@
                   </div>
 
                   <!-- Conversion Controls -->
-                  <div class="space-y-2">
+                  <div v-if="!isFluxKontext" class="space-y-2">
                     <h4 class="text-sm font-medium">Convert Image</h4>
                     <div class="flex gap-2">
                       <Button
@@ -254,7 +284,7 @@
                   </div>
 
                   <!-- Converted Image Preview -->
-                  <div v-if="convertedImagePreview" class="space-y-2">
+                  <div v-if="convertedImagePreview && !isFluxKontext" class="space-y-2">
                     <h4 class="text-sm font-medium">Converted Image</h4>
                     <img
                       :src="convertedImagePreview"
@@ -288,7 +318,7 @@
             </div>
 
             <!-- Additional Parameters -->
-            <div class="grid grid-cols-2 gap-4">
+            <div v-if="!isFluxKontext" class="grid grid-cols-2 gap-4">
               <div class="space-y-2">
                 <Label for="width">Width</Label>
                 <Select v-model="formData.width">
@@ -366,11 +396,48 @@
         <!-- Generated Image -->
         <Card>
           <CardHeader>
-            <CardTitle>Generated Image</CardTitle>
+            <CardTitle>{{ isFluxKontext ? 'Generated Image' : 'Generated Image' }}</CardTitle>
           </CardHeader>
           <CardContent>
             <div class="space-y-4">
-              <div class="relative">
+              <!-- For Flux Kontext, show both original and generated images side by side -->
+              <div v-if="isFluxKontext && generatedImage && uploadedImagePreview" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Original Image -->
+                <div class="space-y-2">
+                  <h4 class="text-sm font-medium">Original Image</h4>
+                  <div class="relative">
+                    <img
+                      :src="uploadedImagePreview"
+                      alt="Original input image"
+                      class="w-full rounded-lg border"
+                    />
+                  </div>
+                </div>
+
+                <!-- Generated Image -->
+                <div class="space-y-2">
+                  <h4 class="text-sm font-medium">Generated Image</h4>
+                  <div class="relative">
+                    <img
+                      :src="generatedImage"
+                      :alt="formData.prompt"
+                      class="w-full rounded-lg border"
+                    />
+                    <Button
+                      @click="downloadImage"
+                      variant="outline"
+                      size="sm"
+                      class="absolute top-2 right-2"
+                    >
+                      <Icon name="lucide:download" class="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- For other models, show single generated image -->
+              <div v-else class="relative">
                 <!-- Generated Image -->
                 <img
                   v-if="generatedImage"
@@ -389,7 +456,7 @@
                   </div>
                 </div>
                 <Button
-                  v-if="generatedImage"
+                  v-if="generatedImage && !isFluxKontext"
                   @click="downloadImage"
                   variant="outline"
                   size="sm"
@@ -518,6 +585,7 @@ interface FormData {
   image: string | null
   samples: number
   seed: number
+  aspect_ratio?: string
 }
 
 // Separate interface for canny parameters (not sent to NIM)
@@ -557,7 +625,8 @@ const formData = ref<FormData>({
   mode: 'base',
   image: null,
   samples: 1,
-  seed: 0
+  seed: 0,
+  aspect_ratio: 'match_input_image'
 })
 
 // Canny edge detection parameters (only used for image conversion)
@@ -579,12 +648,16 @@ const uploadedImagePreview = ref<string | null>(null)
 const uploadedImageDimensions = ref<{width: number, height: number} | null>(null)
 const convertedImagePreview = ref<string | null>(null)
 const convertingImage = ref(false)
+const useNvidiaApi = ref(false)
 
 // Use NIM ID from props
 const nimId = computed(() => props.nimId)
 
 // Check if this is Flux Schnell model
 const isFluxSchnell = computed(() => nimId.value === 'black-forest-labs/flux_1-schnell')
+
+// Check if this is Flux Kontext model
+const isFluxKontext = computed(() => nimId.value === 'black-forest-labs/flux_1-kontext-dev')
 
 // Computed property to handle slider array format
 const stepsValue = computed({
@@ -595,12 +668,78 @@ const stepsValue = computed({
 })
 
 const getPayloadForDisplay = () => {
-  return formData.value
+  if (isFluxKontext.value) {
+    // Flux Kontext payload structure - always show aspect_ratio in preview
+    return {
+      prompt: formData.value.prompt,
+      image: formData.value.image,
+      aspect_ratio: formData.value.aspect_ratio,
+      steps: formData.value.steps,
+      cfg_scale: formData.value.cfg_scale,
+      seed: formData.value.seed
+    }
+  } else {
+    // Flux Schnell/Dev payload structure
+    return {
+      prompt: formData.value.prompt,
+      steps: formData.value.steps,
+      cfg_scale: formData.value.cfg_scale,
+      height: formData.value.height,
+      width: formData.value.width,
+      mode: formData.value.mode,
+      image: formData.value.image,
+      samples: formData.value.samples,
+      seed: formData.value.seed
+    }
+  }
+}
+
+// Helper functions for UI
+const getModelTitle = () => {
+  if (isFluxSchnell.value) return 'Flux Schnell Image Generation'
+  if (isFluxKontext.value) return 'Flux Kontext Image Generation'
+  return 'Flux Dev Image Generation'
+}
+
+const getModelDescription = () => {
+  if (isFluxSchnell.value) return 'Generate high-quality images using FLUX.1-schnell model'
+  if (isFluxKontext.value) return 'Generate high-quality images using FLUX.1-kontext model with in-context generation'
+  return 'Generate high-quality images using FLUX.1-dev model with advanced features'
+}
+
+const getStepsMin = () => {
+  if (isFluxSchnell.value) return 1
+  if (isFluxKontext.value) return 1
+  return 5
+}
+
+const getStepsMax = () => {
+  if (isFluxSchnell.value) return 4
+  if (isFluxKontext.value) return 50
+  return 50
+}
+
+const getStepsRange = () => {
+  if (isFluxSchnell.value) return '1-4'
+  if (isFluxKontext.value) return '1-50'
+  return '5-50'
+}
+
+const getCfgScaleDescription = () => {
+  if (isFluxSchnell.value) return 'CFG Scale is fixed at 0 for Flux Schnell model'
+  if (isFluxKontext.value) return 'Classifier-free guidance scale (default: 3.5)'
+  return 'Classifier-free guidance scale (default: 0)'
 }
 
 const generateImage = async () => {
   if (!formData.value.prompt.trim()) {
     error.value = 'Please enter a prompt'
+    return
+  }
+
+  // For Flux Kontext, require an image
+  if (isFluxKontext.value && !formData.value.image) {
+    error.value = 'Please upload an input image for Flux Kontext generation'
     return
   }
 
@@ -611,15 +750,50 @@ const generateImage = async () => {
     inferenceResult.value = null
     contentFiltered.value = false
 
-    console.log('Generating image with data:', formData.value)
+    // Prepare payload based on model type
+    let payload: any
+    if (isFluxKontext.value) {
+      // Flux Kontext payload structure
+      payload = {
+        prompt: formData.value.prompt,
+        image: formData.value.image,
+        steps: formData.value.steps,
+        cfg_scale: formData.value.cfg_scale,
+        seed: formData.value.seed
+      }
+
+      // Only include aspect_ratio for local NIM, not for NVIDIA API
+      if (!useNvidiaApi.value) {
+        payload.aspect_ratio = formData.value.aspect_ratio
+      }
+    } else {
+      // Flux Schnell/Dev payload structure - exclude aspect_ratio field
+      payload = {
+        prompt: formData.value.prompt,
+        steps: formData.value.steps,
+        cfg_scale: formData.value.cfg_scale,
+        height: formData.value.height,
+        width: formData.value.width,
+        mode: formData.value.mode,
+        image: formData.value.image,
+        samples: formData.value.samples,
+        seed: formData.value.seed
+      }
+    }
 
     const toggleResponse = await fetch(`${config.public.apiBase}/api/nvidia/toggle`)
     const toggleData = await toggleResponse.json()
-    const useNvidiaApi = toggleData.enabled
+    const useNvidiaApiValue = toggleData.enabled
+    useNvidiaApi.value = useNvidiaApiValue
 
-    const response = await $fetch<InferenceResult>(`${config.public.apiBase}/v0/nims/${nimId.value}?use_nvidia_api=${useNvidiaApi}`, {
+    console.log('Generating image with data:', payload)
+    console.log('Form data:', formData.value)
+    console.log('Uploaded image dimensions:', uploadedImageDimensions.value)
+    console.log('Converted image preview exists:', !!convertedImagePreview.value)
+
+    const response = await $fetch<InferenceResult>(`${config.public.apiBase}/v0/nims/${nimId.value}?use_nvidia_api=${useNvidiaApiValue}`, {
       method: 'POST',
-      body: formData.value
+      body: payload
     })
 
     console.log('Generation response:', response)
@@ -803,6 +977,14 @@ const convertImage = async (conversionType: 'canny' | 'depth') => {
     // Update converted image preview
     convertedImagePreview.value = response.converted_image_data
 
+    // Store converted dimensions for later use
+    if (response.converted_dimensions) {
+      uploadedImageDimensions.value = {
+        width: response.converted_dimensions.width,
+        height: response.converted_dimensions.height
+      }
+    }
+
   } catch (err: any) {
     console.error(`❌ ${conversionType} conversion failed:`, err)
     error.value = `Image conversion failed: ${err.data?.detail || err.message || 'Unknown error'}`
@@ -815,10 +997,11 @@ const convertImage = async (conversionType: 'canny' | 'depth') => {
 const useConvertedImage = () => {
   if (!convertedImagePreview.value) return
 
-  // Update form data with converted image
-  formData.value.image = convertedImagePreview.value
-
-  console.log('✅ Using converted image for generation')
+  // For Flux Dev canny/depth modes, we should NOT use the converted image
+  // The NIM service handles the canny/depth processing internally
+  // We should keep the original image in formData.value.image
+  console.log('ℹ️ Converted image available for preview, but keeping original image for generation')
+  console.log('📐 Current dimensions:', { width: formData.value.width, height: formData.value.height })
 }
 
 // Reset converted image
@@ -844,8 +1027,23 @@ watch([
   }
 }, { deep: true })
 
-// Watch for model changes and adjust steps accordingly
-watch(isFluxSchnell, (isSchnell) => {
+// Check NVIDIA API status on component mount
+const checkNvidiaApiStatus = async () => {
+  try {
+    const toggleResponse = await fetch(`${config.public.apiBase}/api/nvidia/toggle`)
+    const toggleData = await toggleResponse.json()
+    useNvidiaApi.value = toggleData.enabled
+  } catch (error) {
+    console.error('Failed to check NVIDIA API status:', error)
+    useNvidiaApi.value = false
+  }
+}
+
+// Check NVIDIA API status when component mounts
+onMounted(() => {
+  checkNvidiaApiStatus()
+})
+watch([isFluxSchnell, isFluxKontext], ([isSchnell, isKontext]) => {
   if (isSchnell) {
     // Flux Schnell: 1-4, default 4
     if (formData.value.steps > 4) {
@@ -853,6 +1051,15 @@ watch(isFluxSchnell, (isSchnell) => {
     }
     // CFG Scale must be 0 for Flux Schnell
     formData.value.cfg_scale = 0
+  } else if (isKontext) {
+    // Flux Kontext: 1-50, default 30
+    if (formData.value.steps < 1) {
+      formData.value.steps = 30
+    }
+    // CFG Scale default 3.5 for Flux Kontext
+    if (formData.value.cfg_scale === 0) {
+      formData.value.cfg_scale = 3.5
+    }
   } else {
     // Flux Dev: 5-50, default 20
     if (formData.value.steps < 5) {
@@ -863,15 +1070,19 @@ watch(isFluxSchnell, (isSchnell) => {
 
 // Set page metadata
 useHead({
-  title: computed(() => nimId.value === 'black-forest-labs/flux_1-schnell'
-    ? 'Flux Schnell Generation - NIM Kit'
-    : 'Flux Dev Generation - NIM Kit'),
+  title: computed(() => {
+    if (nimId.value === 'black-forest-labs/flux_1-schnell') return 'Flux Schnell Generation - NIM Kit'
+    if (nimId.value === 'black-forest-labs/flux_1-kontext-dev') return 'Flux Kontext Generation - NIM Kit'
+    return 'Flux Dev Generation - NIM Kit'
+  }),
   meta: [
     {
       name: 'description',
-      content: computed(() => nimId.value === 'black-forest-labs/flux_1-schnell'
-        ? 'Generate high-quality images using FLUX.1-schnell model'
-        : 'Generate high-quality images using FLUX.1-dev model with advanced features')
+      content: computed(() => {
+        if (nimId.value === 'black-forest-labs/flux_1-schnell') return 'Generate high-quality images using FLUX.1-schnell model'
+        if (nimId.value === 'black-forest-labs/flux_1-kontext-dev') return 'Generate high-quality images using FLUX.1-kontext model with in-context generation'
+        return 'Generate high-quality images using FLUX.1-dev model with advanced features'
+      })
     }
   ]
 })
