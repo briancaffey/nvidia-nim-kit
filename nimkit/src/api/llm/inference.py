@@ -80,9 +80,22 @@ async def get_inference_endpoint(
         tuple: (endpoint_url, headers)
     """
     if use_nvidia_api:
-        # For NVIDIA API, use the standard integrate.api.nvidia.com endpoint
-        # This matches the NVIDIA documentation: https://integrate.api.nvidia.com/v1/chat/completions
-        endpoint = "https://integrate.api.nvidia.com/v1/chat/completions"
+        # For NVIDIA API, use the invoke_url from NIM metadata as base URL
+        from nimkit.src.api.utils import validate_nim_exists
+        nim_data, nim_metadata = validate_nim_exists(nim_id)
+
+        invoke_url = nim_metadata.get("invoke_url")
+        if not invoke_url:
+            raise HTTPException(
+                status_code=400,
+                detail=f"NVIDIA API invoke_url not found for NIM {nim_id}",
+            )
+
+        # Use the invoke_url directly as the base URL for OpenAI client format
+        endpoint = f"{invoke_url}/chat/completions"
+
+        logger.info(f"Constructed NVIDIA API endpoint for {nim_id}: {endpoint}")
+        logger.info(f"Base invoke_url from metadata: {invoke_url}")
 
         headers = get_nvidia_api_headers()
         if stream:
@@ -112,9 +125,22 @@ async def get_completion_endpoint(
         tuple: (endpoint_url, headers)
     """
     if use_nvidia_api:
-        # For NVIDIA API, use the standard integrate.api.nvidia.com endpoint
-        # This matches the NVIDIA documentation: https://integrate.api.nvidia.com/v1/completions
-        endpoint = "https://integrate.api.nvidia.com/v1/completions"
+        # For NVIDIA API, use the invoke_url from NIM metadata as base URL
+        from nimkit.src.api.utils import validate_nim_exists
+        nim_data, nim_metadata = validate_nim_exists(nim_id)
+
+        invoke_url = nim_metadata.get("invoke_url")
+        if not invoke_url:
+            raise HTTPException(
+                status_code=400,
+                detail=f"NVIDIA API invoke_url not found for NIM {nim_id}",
+            )
+
+        # Use the invoke_url directly as the base URL for OpenAI client format
+        endpoint = f"{invoke_url}/completions"
+
+        logger.info(f"Constructed NVIDIA API completion endpoint for {nim_id}: {endpoint}")
+        logger.info(f"Base invoke_url from metadata: {invoke_url}")
 
         headers = get_nvidia_api_headers()
         if stream:
@@ -174,6 +200,17 @@ async def inference(
     try:
         # Prepare request for NIM
         nim_request_data = request_body.model_dump()
+
+        # For NVIDIA API, use the model name from NIM metadata instead of the request body
+        if use_nvidia_api:
+            from nimkit.src.api.utils import validate_nim_exists
+            nim_data, nim_metadata = validate_nim_exists(nim_id)
+            model_name = nim_metadata.get("model")
+            if model_name:
+                nim_request_data["model"] = model_name
+                logger.info(f"Using model name from NIM metadata: {model_name}")
+            else:
+                logger.warning(f"No model name found in NIM metadata for {nim_id}, using request body model")
 
         # Fix logprobs format for NIM service
         # Chat completions expects logprobs as boolean, completions expects it as integer
@@ -283,7 +320,10 @@ async def inference(
             # Non-streaming path
             async with httpx.AsyncClient(timeout=120.0) as client:
                 logger.info("Processing non-streaming response")
-                # Non-streaming path (unchanged except larger timeout)
+                logger.info(f"Making request to endpoint: {endpoint}")
+                logger.info(f"Request data: {nim_request_data}")
+                logger.info(f"Request headers: {headers}")
+
                 response = await client.post(
                     endpoint,
                     json=nim_request_data,
@@ -292,7 +332,9 @@ async def inference(
                 logger.info(f"NIM response status: {response.status_code}")
                 logger.info(f"NIM response headers: {dict(response.headers)}")
                 response.raise_for_status()
+
                 response_data = response.json()
+                logger.info(f"Parsed response data: {response_data}")
 
                 inference_request.set_output(response_data)
                 inference_request.status = "completed"
@@ -394,6 +436,17 @@ async def completion(
     try:
         # Prepare request for NIM
         nim_request_data = request_body.model_dump()
+
+        # For NVIDIA API, use the model name from NIM metadata instead of the request body
+        if use_nvidia_api:
+            from nimkit.src.api.utils import validate_nim_exists
+            nim_data, nim_metadata = validate_nim_exists(nim_id)
+            model_name = nim_metadata.get("model")
+            if model_name:
+                nim_request_data["model"] = model_name
+                logger.info(f"Using model name from NIM metadata: {model_name}")
+            else:
+                logger.warning(f"No model name found in NIM metadata for {nim_id}, using request body model")
 
         # Fix logprobs format for NIM service
         if nim_request_data.get("logprobs") is True:
@@ -503,6 +556,10 @@ async def completion(
             # Non-streaming path
             async with httpx.AsyncClient(timeout=120.0) as client:
                 logger.info("Processing non-streaming completion response")
+                logger.info(f"Making request to endpoint: {endpoint}")
+                logger.info(f"Request data: {nim_request_data}")
+                logger.info(f"Request headers: {headers}")
+
                 response = await client.post(
                     endpoint,
                     json=nim_request_data,
@@ -511,6 +568,7 @@ async def completion(
                 logger.info(f"NIM response status: {response.status_code}")
                 logger.info(f"NIM response headers: {dict(response.headers)}")
                 response.raise_for_status()
+
                 response_data = response.json()
                 logger.info(f"Parsed completion response data: {response_data}")
 

@@ -215,6 +215,7 @@
 
 - id: nvidia/nvidia-nemotron-nano-9b-v2
   url: https://build.nvidia.com/nvidia/nvidia-nemotron-nano-9b-v2
+  model: nvidia/nvidia-nemotron-nano-9b-v2
   type: llm
   invoke_url: https://integrate.api.nvidia.com/v1
   tags:

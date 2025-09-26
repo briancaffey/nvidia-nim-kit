@@ -93,8 +93,13 @@
         <StudioVoiceGeneration :nim-id="nimId" />
       </div>
 
-      <!-- NIM Configuration Form (when no config exists) -->
-      <div v-else-if="!nimConfig && !isConfiguring" class="mb-8">
+      <!-- LLM Generation Component -->
+      <div v-else-if="isLLMModel">
+        <LLMGeneration :nim-id="nimId" />
+      </div>
+
+      <!-- NIM Configuration Form (when no config exists and not LLM) -->
+      <div v-else-if="!nimConfig && !isConfiguring && !isLLMModel" class="mb-8">
         <NIMConfigForm
           :nim-id="nimId"
           :nim-id-disabled="true"
@@ -117,7 +122,7 @@
       </div>
 
       <!-- Fallback Form for Unimplemented NIMs -->
-      <div v-if="nimConfig && !isFluxModel && !isTrellisModel && !isAsrModel && !isStudioVoiceModel" class="mb-8">
+      <div v-if="nimConfig && !isFluxModel && !isTrellisModel && !isAsrModel && !isStudioVoiceModel && !isLLMModel" class="mb-8">
         <Card>
           <CardHeader>
             <CardTitle class="flex items-center gap-2">
@@ -161,6 +166,7 @@ import FluxSchnellGeneration from '~/components/FluxSchnellGeneration.vue'
 import TrellisGeneration from '~/components/TrellisGeneration.vue'
 import RivaAsrGeneration from '~/components/RivaAsrGeneration.vue'
 import StudioVoiceGeneration from '~/components/StudioVoiceGeneration.vue'
+import LLMGeneration from '~/components/LLMGeneration.vue'
 import NIMConfigForm from '~/components/NIMConfigForm.vue'
 
 interface NIM {
@@ -178,7 +184,7 @@ interface NIM {
 const route = useRoute()
 const config = useRuntimeConfig()
 const nim = ref<NIM | null>(null)
-const nimConfig = ref<{host: string, port: number} | null>(null)
+const nimConfig = ref<{host: string, port: number, nim_type?: string} | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const isConfiguring = ref(false)
@@ -214,6 +220,12 @@ const isAsrModel = computed(() => {
 // Check if this is a Studio Voice model
 const isStudioVoiceModel = computed(() => {
   return nimId.value === 'nvidia/studiovoice'
+})
+
+// Check if this is an LLM model
+const isLLMModel = computed(() => {
+  // Check from catalog data first (nim.type), then from config (nimConfig.nim_type)
+  return nim.value?.type === 'llm' || (nimConfig.value && nimConfig.value.nim_type === 'llm')
 })
 
 const fetchNimDetails = async () => {
