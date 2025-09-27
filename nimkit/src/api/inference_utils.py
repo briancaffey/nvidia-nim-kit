@@ -1096,7 +1096,7 @@ async def perform_speech_enhancement_inference(
                 # Create metadata with authorization and function ID
                 metadata = [
                     ("authorization", f"Bearer {nvidia_api_key}"),
-                    ("function-id", "7cf12edb-2181-4947-8b19-2b1c18270588")
+                    ("function-id", "7cf12edb-2181-4947-8b19-2b1c18270588"),
                 ]
 
                 with grpc.secure_channel(target, credentials) as channel:
@@ -1335,7 +1335,7 @@ async def perform_paddleocr_inference(
         from .paddleocr_utils import (
             extract_text_from_image,
             visualize_text_detections,
-            process_paddleocr_response
+            process_paddleocr_response,
         )
 
         # Validate NIM exists and get configuration
@@ -1447,7 +1447,9 @@ async def perform_paddleocr_inference(
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=error_msg)
 
     except Exception as e:
-        error_msg = f"Unexpected error during PaddleOCR inference for {nim_id}: {str(e)}"
+        error_msg = (
+            f"Unexpected error during PaddleOCR inference for {nim_id}: {str(e)}"
+        )
         logger.error(error_msg)
 
         # Update inference request with unexpected error

@@ -82,6 +82,7 @@ async def get_inference_endpoint(
     if use_nvidia_api:
         # For NVIDIA API, use the invoke_url from NIM metadata as base URL
         from nimkit.src.api.utils import validate_nim_exists
+
         nim_data, nim_metadata = validate_nim_exists(nim_id)
 
         invoke_url = nim_metadata.get("invoke_url")
@@ -127,6 +128,7 @@ async def get_completion_endpoint(
     if use_nvidia_api:
         # For NVIDIA API, use the invoke_url from NIM metadata as base URL
         from nimkit.src.api.utils import validate_nim_exists
+
         nim_data, nim_metadata = validate_nim_exists(nim_id)
 
         invoke_url = nim_metadata.get("invoke_url")
@@ -139,7 +141,9 @@ async def get_completion_endpoint(
         # Use the invoke_url directly as the base URL for OpenAI client format
         endpoint = f"{invoke_url}/completions"
 
-        logger.info(f"Constructed NVIDIA API completion endpoint for {nim_id}: {endpoint}")
+        logger.info(
+            f"Constructed NVIDIA API completion endpoint for {nim_id}: {endpoint}"
+        )
         logger.info(f"Base invoke_url from metadata: {invoke_url}")
 
         headers = get_nvidia_api_headers()
@@ -204,13 +208,16 @@ async def inference(
         # For NVIDIA API, use the model name from NIM metadata instead of the request body
         if use_nvidia_api:
             from nimkit.src.api.utils import validate_nim_exists
+
             nim_data, nim_metadata = validate_nim_exists(nim_id)
             model_name = nim_metadata.get("model")
             if model_name:
                 nim_request_data["model"] = model_name
                 logger.info(f"Using model name from NIM metadata: {model_name}")
             else:
-                logger.warning(f"No model name found in NIM metadata for {nim_id}, using request body model")
+                logger.warning(
+                    f"No model name found in NIM metadata for {nim_id}, using request body model"
+                )
 
         # Fix logprobs format for NIM service
         # Chat completions expects logprobs as boolean, completions expects it as integer
@@ -440,13 +447,16 @@ async def completion(
         # For NVIDIA API, use the model name from NIM metadata instead of the request body
         if use_nvidia_api:
             from nimkit.src.api.utils import validate_nim_exists
+
             nim_data, nim_metadata = validate_nim_exists(nim_id)
             model_name = nim_metadata.get("model")
             if model_name:
                 nim_request_data["model"] = model_name
                 logger.info(f"Using model name from NIM metadata: {model_name}")
             else:
-                logger.warning(f"No model name found in NIM metadata for {nim_id}, using request body model")
+                logger.warning(
+                    f"No model name found in NIM metadata for {nim_id}, using request body model"
+                )
 
         # Fix logprobs format for NIM service
         if nim_request_data.get("logprobs") is True:

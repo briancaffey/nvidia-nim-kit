@@ -25,29 +25,31 @@ def encode_image_to_base64(image_source: str) -> str:
     """
     try:
         # Check if the source is a URL or local file
-        if image_source.startswith(('http://', 'https://')):
+        if image_source.startswith(("http://", "https://")):
             # Handle remote URL
             response = requests.get(image_source)
             response.raise_for_status()
             image_bytes = response.content
         else:
             # Handle local file
-            with open(image_source, 'rb') as f:
+            with open(image_source, "rb") as f:
                 image_bytes = f.read()
 
         # Encode to base64
-        base64_image = base64.b64encode(image_bytes).decode('utf-8')
+        base64_image = base64.b64encode(image_bytes).decode("utf-8")
         return f"data:image/jpeg;base64,{base64_image}"
 
     except Exception as e:
         logger.error(f"Failed to encode image to base64: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to encode image: {str(e)}"
+            detail=f"Failed to encode image: {str(e)}",
         )
 
 
-def extract_text_from_image(image_data_url: str, api_endpoint: str, headers: Dict[str, str]) -> Dict[str, Any]:
+def extract_text_from_image(
+    image_data_url: str, api_endpoint: str, headers: Dict[str, str]
+) -> Dict[str, Any]:
     """
     Extract text from images using the PaddleOCR NIM API.
 
@@ -81,7 +83,9 @@ def extract_text_from_image(image_data_url: str, api_endpoint: str, headers: Dic
 
         result = response.json()
         logger.info("PaddleOCR inference successful")
-        logger.debug(f"Response keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}")
+        logger.debug(
+            f"Response keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}"
+        )
 
         return result
 
@@ -89,17 +93,19 @@ def extract_text_from_image(image_data_url: str, api_endpoint: str, headers: Dic
         logger.error(f"PaddleOCR API request failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"PaddleOCR API request failed: {str(e)}"
+            detail=f"PaddleOCR API request failed: {str(e)}",
         )
     except Exception as e:
         logger.error(f"Unexpected error in PaddleOCR inference: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"PaddleOCR inference failed: {str(e)}"
+            detail=f"PaddleOCR inference failed: {str(e)}",
         )
 
 
-def visualize_text_detections(image_data_url: str, result: Dict[str, Any], output_path: str) -> None:
+def visualize_text_detections(
+    image_data_url: str, result: Dict[str, Any], output_path: str
+) -> None:
     """
     Draw bounding boxes on the image based on API results.
 
@@ -110,9 +116,9 @@ def visualize_text_detections(image_data_url: str, result: Dict[str, Any], outpu
     """
     try:
         # Load image from data URL
-        if image_data_url.startswith('data:'):
+        if image_data_url.startswith("data:"):
             # Extract base64 data after the comma
-            b64_data = image_data_url.split(',')[1]
+            b64_data = image_data_url.split(",")[1]
             image_bytes = base64.b64decode(b64_data)
             image = Image.open(io.BytesIO(image_bytes))
         else:
@@ -135,7 +141,9 @@ def visualize_text_detections(image_data_url: str, result: Dict[str, Any], outpu
                 # Get bounding box points
                 box = text_detection.get("bounding_box", {}).get("points", [])
                 if not box or len(box) < 4:
-                    logger.warning(f"Invalid bounding box for detection {detections_count}")
+                    logger.warning(
+                        f"Invalid bounding box for detection {detections_count}"
+                    )
                     continue
 
                 # Convert normalized coordinates to pixels
@@ -165,15 +173,17 @@ def visualize_text_detections(image_data_url: str, result: Dict[str, Any], outpu
                 except (OSError, IOError):
                     try:
                         # Try alternative font path
-                        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 12)
+                        font = ImageFont.truetype(
+                            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 12
+                        )
                     except (OSError, IOError):
                         # Use default font
                         font = ImageFont.load_default()
 
                 # Draw text background
-                text_bbox = draw.textbbox((x_min, y_min-20), label, font=font)
+                text_bbox = draw.textbbox((x_min, y_min - 20), label, font=font)
                 draw.rectangle(text_bbox, fill="white", outline="blue")
-                draw.text((x_min, y_min-20), label, fill="blue", font=font)
+                draw.text((x_min, y_min - 20), label, fill="blue", font=font)
 
         logger.info(f"Drew {detections_count} text detections on image")
 
@@ -185,7 +195,7 @@ def visualize_text_detections(image_data_url: str, result: Dict[str, Any], outpu
         logger.error(f"Failed to visualize text detections: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create visualization: {str(e)}"
+            detail=f"Failed to create visualization: {str(e)}",
         )
 
 
@@ -216,7 +226,9 @@ def process_paddleocr_response(response_data: Dict[str, Any], request_id: str) -
         # Extract the original image from the response or request
         # For now, we'll need to get this from the request data
         # This is a limitation - we need the original image data
-        logger.warning("Visualization requires original image data - this needs to be passed from the request")
+        logger.warning(
+            "Visualization requires original image data - this needs to be passed from the request"
+        )
 
         return output_path
 
@@ -224,7 +236,7 @@ def process_paddleocr_response(response_data: Dict[str, Any], request_id: str) -
         logger.error(f"Failed to process PaddleOCR response: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process PaddleOCR response: {str(e)}"
+            detail=f"Failed to process PaddleOCR response: {str(e)}",
         )
 
 
@@ -238,11 +250,4 @@ def create_paddleocr_payload(image_data_url: str) -> Dict[str, Any]:
     Returns:
         Formatted payload for PaddleOCR API
     """
-    return {
-        "input": [
-            {
-                "type": "image_url",
-                "url": image_data_url
-            }
-        ]
-    }
+    return {"input": [{"type": "image_url", "url": image_data_url}]}
