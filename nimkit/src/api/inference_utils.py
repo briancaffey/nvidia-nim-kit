@@ -1309,6 +1309,160 @@ async def perform_speech_enhancement_inference(
         )
 
 
+async def perform_paddleocr_inference(
+    nim_id: str,
+    request_data: Dict[str, Any],
+    inference_request: InferenceRequest,
+    use_nvidia_api: bool = False,
+) -> Dict[str, Any]:
+    """
+    Perform PaddleOCR text detection inference for a NIM.
+
+    Args:
+        nim_id: The NIM ID in format 'publisher/model_name'
+        request_data: The request payload from the frontend
+        inference_request: The InferenceRequest object to update
+        use_nvidia_api: Whether to use NVIDIA API instead of local NIM
+
+    Returns:
+        The response data from the NIM
+
+    Raises:
+        HTTPException: If inference fails
+    """
+    try:
+        # Import PaddleOCR utilities
+        from .paddleocr_utils import (
+            extract_text_from_image,
+            visualize_text_detections,
+            process_paddleocr_response
+        )
+
+        # Validate NIM exists and get configuration
+        nim_data, nim_metadata = validate_nim_exists(nim_id)
+
+        if use_nvidia_api:
+            # Use NVIDIA API endpoint
+            invoke_url = nim_metadata.get("invoke_url")
+            if not invoke_url:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"NVIDIA API invoke_url not found for NIM {nim_id}",
+                )
+
+            headers = get_nvidia_api_headers()
+        else:
+            # Use the local NIM endpoint from Redis configuration
+            base_url = f"http://{nim_data.host}:{nim_data.port}"
+            invoke_url = base_url
+
+            # Prepare headers for local NIM
+            headers = {"accept": "application/json", "content-type": "application/json"}
+
+        logger.info(f"Performing PaddleOCR inference for {nim_id}")
+        logger.debug(f"NIM type: {nim_data.nim_type}")
+        logger.debug(f"NIM metadata: {nim_metadata}")
+        logger.info(f"Invoke URL: {invoke_url}")
+        logger.debug(f"Request data: {request_data}")
+
+        # Get image data from request
+        image_data_url = request_data.get("image_data_url")
+        if not image_data_url:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="image_data_url is required for PaddleOCR inference",
+            )
+
+        # Perform OCR inference
+        response_data = extract_text_from_image(image_data_url, invoke_url, headers)
+        logger.info(f"PaddleOCR inference successful for {nim_id}")
+
+        # Create visualization if we have results
+        if response_data.get("data"):
+            try:
+                # Create output directory
+                request_id = inference_request.request_id
+                media_dir = os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "media"
+                )
+                paddleocr_dir = os.path.join(media_dir, "paddleocr", request_id)
+                os.makedirs(paddleocr_dir, exist_ok=True)
+
+                output_path = os.path.join(paddleocr_dir, "0.png")
+
+                # Create visualization
+                visualize_text_detections(image_data_url, response_data, output_path)
+
+                # Add visualization path to response
+                response_data["visualization_path"] = output_path
+                logger.info(f"Created visualization at: {output_path}")
+
+            except Exception as viz_error:
+                logger.warning(f"Failed to create visualization: {viz_error}")
+                # Don't fail the entire request if visualization fails
+
+        # Update inference request with success
+        logger.debug("Updating InferenceRequest with success status")
+        inference_request.status = "completed"
+        inference_request.set_output(response_data)
+        inference_request.update_timestamp()
+        try:
+            inference_request.save()
+            logger.debug("InferenceRequest updated and saved successfully")
+        except Exception as save_error:
+            logger.error(f"Failed to save updated InferenceRequest: {save_error}")
+            logger.error(f"Save error type: {type(save_error).__name__}")
+            # Don't raise here, just log the error
+
+        return response_data
+
+    except requests.exceptions.Timeout:
+        error_msg = f"PaddleOCR inference timeout for {nim_id}"
+        logger.error(error_msg)
+
+        # Update inference request with timeout error
+        inference_request.status = "error"
+        inference_request.set_error(
+            {"error": "Request timeout", "nim_id": nim_id, "timeout_seconds": 60}
+        )
+        inference_request.update_timestamp()
+        inference_request.save()
+
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=error_msg
+        )
+
+    except requests.exceptions.RequestException as e:
+        error_msg = f"PaddleOCR inference request failed for {nim_id}: {str(e)}"
+        logger.error(error_msg)
+
+        # Update inference request with request error
+        inference_request.status = "error"
+        inference_request.set_error(
+            {"error": str(e), "nim_id": nim_id, "error_type": "RequestException"}
+        )
+        inference_request.update_timestamp()
+        inference_request.save()
+
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=error_msg)
+
+    except Exception as e:
+        error_msg = f"Unexpected error during PaddleOCR inference for {nim_id}: {str(e)}"
+        logger.error(error_msg)
+
+        # Update inference request with unexpected error
+        inference_request.status = "error"
+        inference_request.set_error(
+            {"error": str(e), "nim_id": nim_id, "error_type": "UnexpectedError"}
+        )
+        inference_request.update_timestamp()
+        inference_request.save()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_msg
+        )
+
+
 async def perform_inference(
     nim_id: str,
     request_data: Dict[str, Any],
@@ -1354,6 +1508,10 @@ async def perform_inference(
         )
     elif nim_type == "speech_enhancement":
         return await perform_speech_enhancement_inference(
+            nim_id, request_data, inference_request, use_nvidia_api
+        )
+    elif nim_type == "paddleocr":
+        return await perform_paddleocr_inference(
             nim_id, request_data, inference_request, use_nvidia_api
         )
     else:

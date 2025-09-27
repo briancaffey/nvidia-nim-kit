@@ -196,6 +196,9 @@ async def nim_inference(
         elif nim_type == "speech_enhancement":
             request_type = "SPEECH_ENHANCEMENT"
             request_type_str = "speech_enhancement"
+        elif nim_type == "paddleocr":
+            request_type = "PADDLEOCR"
+            request_type_str = "paddleocr"
         else:
             request_type = "UNKNOWN"
             request_type_str = "unknown"

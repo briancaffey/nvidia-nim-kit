@@ -93,6 +93,11 @@
         <StudioVoiceGeneration :nim-id="nimId" />
       </div>
 
+      <!-- PaddleOCR Generation Component -->
+      <div v-else-if="isPaddleocrModel">
+        <PaddleOcrGeneration :nim-id="nimId" />
+      </div>
+
       <!-- LLM Generation Component -->
       <div v-else-if="isLLMModel">
         <LLMGeneration :nim-id="nimId" />
@@ -122,7 +127,7 @@
       </div>
 
       <!-- Fallback Form for Unimplemented NIMs -->
-      <div v-if="nimConfig && !isFluxModel && !isTrellisModel && !isAsrModel && !isStudioVoiceModel && !isLLMModel" class="mb-8">
+      <div v-if="nimConfig && !isFluxModel && !isTrellisModel && !isAsrModel && !isStudioVoiceModel && !isPaddleocrModel && !isLLMModel" class="mb-8">
         <Card>
           <CardHeader>
             <CardTitle class="flex items-center gap-2">
@@ -166,6 +171,7 @@ import FluxSchnellGeneration from '~/components/FluxSchnellGeneration.vue'
 import TrellisGeneration from '~/components/TrellisGeneration.vue'
 import RivaAsrGeneration from '~/components/RivaAsrGeneration.vue'
 import StudioVoiceGeneration from '~/components/StudioVoiceGeneration.vue'
+import PaddleOcrGeneration from '~/components/PaddleOcrGeneration.vue'
 import LLMGeneration from '~/components/LLMGeneration.vue'
 import NIMConfigForm from '~/components/NIMConfigForm.vue'
 
@@ -221,6 +227,11 @@ const isAsrModel = computed(() => {
 // Check if this is a Studio Voice model
 const isStudioVoiceModel = computed(() => {
   return nimId.value === 'nvidia/studiovoice'
+})
+
+// Check if this is a PaddleOCR model
+const isPaddleocrModel = computed(() => {
+  return nimId.value === 'baidu/paddleocr'
 })
 
 // Check if this is an LLM model

@@ -167,7 +167,7 @@
 
 - id: baidu/paddleocr
   url: https://build.nvidia.com/baidu/paddleocr
-  type: ocr
+  type: paddleocr
   invoke_url: https://ai.api.nvidia.com/v1/cv/baidu/paddleocr
   tags:
     - optical character detection
