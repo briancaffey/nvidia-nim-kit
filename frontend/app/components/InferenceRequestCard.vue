@@ -71,6 +71,12 @@
           :request="request"
         />
 
+        <!-- PaddleOCR (Text Detection) -->
+        <PaddleOcrCard
+          v-else-if="isPaddleOcrNim"
+          :request="request"
+        />
+
         <!-- Other NIM types - placeholder for now -->
         <div v-else class="space-y-3">
           <div class="text-sm">
@@ -106,6 +112,7 @@ import { Badge } from '@/components/ui/badge'
 import SchnellCard from './SchnellCard.vue'
 import TrellisCard from './TrellisCard.vue'
 import StudioVoiceCard from './StudioVoiceCard.vue'
+import PaddleOcrCard from './PaddleOcrCard.vue'
 
 // Props
 interface Props {
@@ -152,6 +159,14 @@ const isStudioVoiceNim = computed(() => {
   return props.request.nim_id.includes('studiovoice') ||
          props.request.type === 'SPEECH_ENHANCEMENT' ||
          props.request.request_type === 'speech_enhancement'
+})
+
+const isPaddleOcrNim = computed(() => {
+  return props.request.nim_id.includes('paddleocr') ||
+         props.request.nim_id.includes('baidu') ||
+         props.request.type === 'TEXT_DETECTION' ||
+         props.request.request_type === 'text_detection' ||
+         props.request.nim_id.includes('ocr')
 })
 
 const statusVariant = computed(() => {

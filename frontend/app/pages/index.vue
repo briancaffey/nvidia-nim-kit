@@ -3,6 +3,9 @@
     <!-- Hero Section -->
     <section class="text-center py-16">
       <div class="max-w-3xl mx-auto">
+        <div class="flex justify-center mb-8">
+          <Logo width="100" height="100" />
+        </div>
         <h1 class="text-4xl font-bold tracking-tight sm:text-6xl mb-6">
           Welcome to <span class="text-primary">NIM Kit</span>
         </h1>

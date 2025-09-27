@@ -6,10 +6,8 @@
         <div class="flex h-16 items-center justify-between">
           <!-- Logo/Brand -->
           <div class="flex items-center space-x-2">
-            <NuxtLink to="/" class="flex items-center space-x-2">
-              <div class="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <span class="text-primary-foreground font-bold text-sm">N</span>
-              </div>
+            <NuxtLink to="/" class="flex items-center">
+              <Logo width="40" height="40" />
               <span class="text-xl font-bold">NIM Kit</span>
             </NuxtLink>
           </div>
@@ -177,10 +175,8 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
           <!-- Brand Section -->
           <div class="md:col-span-2">
-            <div class="flex items-center space-x-2 mb-4">
-              <div class="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <span class="text-primary-foreground font-bold text-sm">N</span>
-              </div>
+            <div class="flex items-center mb-4">
+              <Logo width="40" height="40" />
               <span class="text-xl font-bold">NIM Kit</span>
             </div>
             <p class="text-muted-foreground mb-4 max-w-md">
