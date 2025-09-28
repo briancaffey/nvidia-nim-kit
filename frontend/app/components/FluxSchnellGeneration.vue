@@ -1,14 +1,5 @@
 <template>
   <div>
-    <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold mb-2">
-        {{ getModelTitle() }}
-      </h1>
-      <p class="text-muted-foreground">
-        {{ getModelDescription() }}
-      </p>
-    </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- Left Side - Form -->

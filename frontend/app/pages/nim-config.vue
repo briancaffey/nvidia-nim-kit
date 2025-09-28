@@ -1,12 +1,5 @@
 <template>
   <div class="container mx-auto px-4 py-8 max-w-6xl">
-    <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold tracking-tight mb-2">NIM Configuration</h1>
-      <p class="text-muted-foreground">
-        Manage configuration settings for your NVIDIA Inference Microservices (NIMs)
-      </p>
-    </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- Configured NIMs List -->

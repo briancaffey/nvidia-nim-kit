@@ -3,7 +3,6 @@
 import time
 import logging
 from nimkit.src.celery_app import celery_app
-from nimkit.src.api.llm.metrics import metrics_processor
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -28,26 +27,3 @@ def debug_task(self) -> str:
     logger.info(f"Task completed: {result}")
 
     return result
-
-
-@celery_app.task(bind=True, name="process_metrics", queue="nimkit_tasks")
-def process_metrics(self) -> dict:
-    """
-    Process metrics from NIM endpoint and store in RedisTimeSeries.
-
-    This task runs every 5 seconds via Celery Beat to continuously
-    ingest Prometheus metrics from the NIM /v1/metrics endpoint.
-
-    Returns:
-        dict: Statistics about the processing (parsed, written, errors)
-    """
-    logger.info(f"Starting metrics processing task with ID: {self.request.id}")
-
-    try:
-        result = metrics_processor.process_metrics()
-        logger.info(f"Metrics processing completed: {result}")
-        return result
-
-    except Exception as e:
-        logger.error(f"Metrics processing failed: {e}")
-        return {"parsed": 0, "written": 0, "errors": 1}

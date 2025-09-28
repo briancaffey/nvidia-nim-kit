@@ -1,12 +1,5 @@
 <template>
   <div>
-    <!-- Header -->
-    <!-- <div class="mb-8">
-      <h1 class="text-3xl font-bold mb-2">PaddleOCR Text Detection</h1>
-      <p class="text-muted-foreground">
-        Extract text from images using Baidu PaddleOCR with bounding box visualization
-      </p>
-    </div> -->
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- Left Side - Form -->

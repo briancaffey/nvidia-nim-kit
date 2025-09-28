@@ -1,12 +1,5 @@
 <template>
   <div>
-    <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold mb-2">LLM Inference</h1>
-      <p class="text-muted-foreground">
-        Generate text completions and chat responses using LLM models
-      </p>
-    </div>
 
     <!-- Configuration Prompt -->
     <div v-if="!isNimConfigured" class="mb-8">

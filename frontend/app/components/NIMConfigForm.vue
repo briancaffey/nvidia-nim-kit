@@ -171,6 +171,14 @@ defineExpose({
   },
   setSaving: (saving: boolean) => {
     isSaving.value = saving
+  },
+  populateForm: (config: {host: string, port: number, nim_type: string}) => {
+    formData.value = {
+      nim_id: props.nimId || '',
+      host: config.host,
+      port: config.port,
+      nim_type: config.nim_type
+    }
   }
 })
 </script>

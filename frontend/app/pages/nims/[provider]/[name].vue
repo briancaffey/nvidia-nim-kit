@@ -41,12 +41,6 @@
             {{ nim.description }}
           </p>
 
-          <!-- NIM Instance Badge -->
-          <div v-if="nimConfig" class="mb-4">
-            <Badge class="text-xs bg-muted text-muted-foreground border border-border">
-              NIM Instance: {{ nimConfig.host }}:{{ nimConfig.port }}
-            </Badge>
-          </div>
 
           <!-- Tags -->
           <div class="flex flex-wrap gap-2">
@@ -70,8 +64,96 @@
           />
           <!-- Fade effect on left side for dark/light mode -->
           <div class="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent" />
+
+          <!-- NIM Instance Button in bottom right corner -->
+          <Button
+            v-if="nimConfig"
+            @click="openNimConfigModal"
+            class="absolute bottom-4 right-4 bg-[#74b900] hover:bg-[#5a9200] text-white border-0 shadow-lg"
+            size="sm"
+          >
+            <Icon name="lucide:server" class="mr-2 h-4 w-4" />
+            NIM Instance: {{ nimConfig.host }}:{{ nimConfig.port }}
+          </Button>
         </div>
       </div>
+
+      <!-- NIM Config Modal -->
+      <Dialog v-model:open="isNimConfigModalOpen">
+        <DialogContent class="max-w-md">
+          <DialogHeader>
+            <DialogTitle>NIM Configuration</DialogTitle>
+            <DialogDescription>
+              Manage the configuration for {{ nimId }}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div v-if="nimConfig" class="space-y-4">
+            <!-- Current Configuration Display -->
+            <div class="p-4 bg-muted rounded-lg">
+              <h4 class="font-medium mb-2">Current Configuration</h4>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">Host:</span>
+                  <span class="font-mono">{{ nimConfig.host }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">Port:</span>
+                  <span class="font-mono">{{ nimConfig.port }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">Type:</span>
+                  <span>{{ getNimTypeLabel(nimConfig.nim_type) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-2">
+              <Button
+                variant="outline"
+                @click="openUpdateModal"
+                class="flex-1"
+              >
+                <Icon name="lucide:edit" class="mr-2 h-4 w-4" />
+                Update
+              </Button>
+              <Button
+                variant="destructive"
+                @click="deleteNimConfig"
+                :disabled="isDeleting"
+                class="flex-1"
+              >
+                <Icon name="lucide:trash-2" class="mr-2 h-4 w-4" />
+                {{ isDeleting ? 'Deleting...' : 'Delete' }}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <!-- Update NIM Config Modal -->
+      <Dialog v-model:open="isUpdateModalOpen">
+        <DialogContent class="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Update NIM Configuration</DialogTitle>
+            <DialogDescription>
+              Update the configuration for {{ nimId }}
+            </DialogDescription>
+          </DialogHeader>
+
+          <NIMConfigForm
+            :nim-id="nimId"
+            :nim-id-disabled="true"
+            title="Update NIM Configuration"
+            submit-text="Update Configuration"
+            @submit="handleUpdateSubmit"
+            @success="handleUpdateSuccess"
+            @error="handleUpdateError"
+            ref="updateFormRef"
+          />
+        </DialogContent>
+      </Dialog>
 
       <!-- Flux Generation Component -->
       <div v-if="isFluxModel">
@@ -174,6 +256,7 @@ import StudioVoiceGeneration from '~/components/StudioVoiceGeneration.vue'
 import PaddleOcrGeneration from '~/components/PaddleOcrGeneration.vue'
 import LLMGeneration from '~/components/LLMGeneration.vue'
 import NIMConfigForm from '~/components/NIMConfigForm.vue'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '~/components/ui/dialog'
 
 interface NIM {
   id: string
@@ -195,6 +278,12 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const isConfiguring = ref(false)
 const configSuccessMessage = ref('')
+
+// Modal state
+const isNimConfigModalOpen = ref(false)
+const isUpdateModalOpen = ref(false)
+const isDeleting = ref(false)
+const updateFormRef = ref()
 
 // Extract provider and name from the route
 const provider = computed(() => route.params.provider as string)
@@ -260,7 +349,7 @@ const fetchNimDetails = async () => {
 const fetchNimConfig = async () => {
   try {
     console.log('Fetching NIM config for:', nimId.value)
-    const response = await $fetch<{host: string, port: number}>(`${config.public.apiBase}/api/nims/config/${encodeURIComponent(nimId.value)}`)
+    const response = await $fetch<{host: string, port: number, nim_type?: string}>(`${config.public.apiBase}/api/nims/config/${encodeURIComponent(nimId.value)}`)
     console.log('Received NIM config:', response)
     nimConfig.value = response
   } catch (err) {
@@ -280,6 +369,105 @@ const formatDate = (dateString: string) => {
   } catch {
     return dateString
   }
+}
+
+// Modal functions
+const openNimConfigModal = () => {
+  isNimConfigModalOpen.value = true
+}
+
+const openUpdateModal = () => {
+  isNimConfigModalOpen.value = false
+  isUpdateModalOpen.value = true
+
+  // Populate the form with existing values
+  if (nimConfig.value && updateFormRef.value) {
+    updateFormRef.value.populateForm({
+      host: nimConfig.value.host,
+      port: nimConfig.value.port,
+      nim_type: nimConfig.value.nim_type || 'llm'
+    })
+  }
+}
+
+const deleteNimConfig = async () => {
+  if (!confirm(`Are you sure you want to delete the configuration for ${nimId.value}?`)) {
+    return
+  }
+
+  isDeleting.value = true
+  try {
+    await $fetch(`${config.public.apiBase}/api/nims/${encodeURIComponent(nimId.value)}`, {
+      method: 'DELETE'
+    })
+
+    // Clear the config and close modal
+    nimConfig.value = null
+    isNimConfigModalOpen.value = false
+
+    // Show success message
+    configSuccessMessage.value = `Successfully deleted configuration for ${nimId.value}`
+    setTimeout(() => {
+      configSuccessMessage.value = ''
+    }, 5000)
+  } catch (err) {
+    console.error('Failed to delete NIM config:', err)
+    // You could add error handling here
+  } finally {
+    isDeleting.value = false
+  }
+}
+
+const handleUpdateSubmit = async (formData: {nim_id: string, host: string, port: number, nim_type: string}) => {
+  try {
+    await $fetch(`${config.public.apiBase}/api/nims/${encodeURIComponent(formData.nim_id)}`, {
+      method: 'POST',
+      body: {
+        host: formData.host,
+        port: formData.port,
+        nim_type: formData.nim_type
+      }
+    })
+
+    // Reload the config
+    await fetchNimConfig()
+
+    // Close modal
+    isUpdateModalOpen.value = false
+
+    // Show success message
+    configSuccessMessage.value = `Successfully updated configuration for ${formData.nim_id}`
+    setTimeout(() => {
+      configSuccessMessage.value = ''
+    }, 5000)
+  } catch (err) {
+    console.error('Failed to update NIM config:', err)
+  }
+}
+
+const handleUpdateSuccess = (nimId: string) => {
+  configSuccessMessage.value = `Successfully updated configuration for ${nimId}`
+  setTimeout(() => {
+    configSuccessMessage.value = ''
+  }, 5000)
+}
+
+const handleUpdateError = (error: string) => {
+  console.error('Update error:', error)
+}
+
+const getNimTypeLabel = (nimType: string) => {
+  const nimTypeOptions = [
+    { value: 'llm', label: 'LLM (Large Language Model)' },
+    { value: 'image_gen', label: 'Image Generation' },
+    { value: '3d', label: '3D Generation' },
+    { value: 'asr', label: 'Automatic Speech Recognition' },
+    { value: 'tts', label: 'Text-to-Speech' },
+    { value: 'studio_voice', label: 'Studio Voice' },
+    { value: 'document', label: 'Document Processing' }
+  ]
+  const option = nimTypeOptions.find(opt => opt.value === nimType)
+  return option ? option.label : nimType
 }
 
 // Configuration handlers

@@ -16,9 +16,15 @@
           <div class="hidden md:flex items-center space-x-6">
             <!-- NVIDIA API Toggle -->
             <div class="flex items-center space-x-2">
-              <Label for="nvidia-api-toggle" class="text-sm font-medium text-muted-foreground">
-                NVIDIA API
-              </Label>
+              <NuxtLink
+                to="/nvidia-config"
+                class="text-sm font-medium transition-colors hover:text-primary"
+                :class="[
+                  useNvidiaApi ? 'text-[#74b900]' : (isActive('/nvidia-config') ? 'text-primary' : 'text-muted-foreground')
+                ]"
+              >
+                NVIDIA Config
+              </NuxtLink>
               <Switch
                 id="nvidia-api-toggle"
                 v-model="useNvidiaApi"
@@ -34,20 +40,6 @@
               NIM Config
             </NuxtLink>
             <NuxtLink
-              to="/nvidia-config"
-              class="text-sm font-medium transition-colors hover:text-primary"
-              :class="isActive('/nvidia-config') ? 'text-primary' : 'text-muted-foreground'"
-            >
-              NVIDIA Config
-            </NuxtLink>
-            <NuxtLink
-              to="/llm"
-              class="text-sm font-medium transition-colors hover:text-primary"
-              :class="isActive('/llm') ? 'text-primary' : 'text-muted-foreground'"
-            >
-              LLM
-            </NuxtLink>
-            <NuxtLink
               to="/nims"
               class="text-sm font-medium transition-colors hover:text-primary"
               :class="isActive('/nims') ? 'text-primary' : 'text-muted-foreground'"
@@ -60,13 +52,6 @@
               :class="isActive('/gallery') ? 'text-primary' : 'text-muted-foreground'"
             >
               Gallery
-            </NuxtLink>
-            <NuxtLink
-              to="/tres"
-              class="text-sm font-medium transition-colors hover:text-primary"
-              :class="isActive('/tres') ? 'text-primary' : 'text-muted-foreground'"
-            >
-              TresJS
             </NuxtLink>
             <button
               @click="toggleTheme"
@@ -98,9 +83,16 @@
           <div class="flex flex-col space-y-2">
             <!-- NVIDIA API Toggle for Mobile -->
             <div class="flex items-center justify-between px-2 py-1">
-              <Label for="nvidia-api-toggle-mobile" class="text-sm font-medium text-muted-foreground">
-                NVIDIA API
-              </Label>
+              <NuxtLink
+                to="/nvidia-config"
+                class="text-sm font-medium transition-colors hover:text-primary px-2 py-1 rounded-md"
+                :class="[
+                  useNvidiaApi ? 'text-[#74b900]' : (isActive('/nvidia-config') ? 'text-primary bg-accent' : 'text-muted-foreground')
+                ]"
+                @click="mobileMenuOpen = false"
+              >
+                NVIDIA Config
+              </NuxtLink>
               <Switch
                 id="nvidia-api-toggle-mobile"
                 v-model="useNvidiaApi"
@@ -115,22 +107,6 @@
               @click="mobileMenuOpen = false"
             >
               NIM Config
-            </NuxtLink>
-            <NuxtLink
-              to="/nvidia-config"
-              class="text-sm font-medium transition-colors hover:text-primary px-2 py-1 rounded-md"
-              :class="isActive('/nvidia-config') ? 'text-primary bg-accent' : 'text-muted-foreground'"
-              @click="mobileMenuOpen = false"
-            >
-              NVIDIA Config
-            </NuxtLink>
-            <NuxtLink
-              to="/llm"
-              class="text-sm font-medium transition-colors hover:text-primary px-2 py-1 rounded-md"
-              :class="isActive('/llm') ? 'text-primary bg-accent' : 'text-muted-foreground'"
-              @click="mobileMenuOpen = false"
-            >
-              LLM
             </NuxtLink>
             <NuxtLink
               to="/nims"
@@ -222,11 +198,6 @@
               <li>
                 <NuxtLink to="/gallery" class="text-muted-foreground hover:text-primary transition-colors">
                   Gallery
-                </NuxtLink>
-              </li>
-              <li>
-                <NuxtLink to="/llm" class="text-muted-foreground hover:text-primary transition-colors">
-                  LLM Chat
                 </NuxtLink>
               </li>
               <li>

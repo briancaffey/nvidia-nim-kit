@@ -1,12 +1,5 @@
 <template>
   <div>
-    <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold mb-2">Trellis 3D Model Generation</h1>
-      <p class="text-muted-foreground">
-        Generate high-quality 3D models using Microsoft Trellis from text or image inputs
-      </p>
-    </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- Left Side - Form -->
