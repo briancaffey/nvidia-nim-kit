@@ -185,19 +185,11 @@
               <!-- Word-level Timestamps -->
               <div v-if="asrResult.words && asrResult.words.length > 0">
                 <Label class="text-sm font-medium">Word-level Timestamps</Label>
-                <div class="mt-2 max-h-64 overflow-y-auto">
-                  <div class="space-y-1">
-                    <div
-                      v-for="(word, index) in asrResult.words"
-                      :key="index"
-                      class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded text-sm"
-                    >
-                      <span class="font-medium text-gray-900 dark:text-gray-100">{{ word.word }}</span>
-                      <span class="text-gray-500 dark:text-gray-400">
-                        {{ formatTimestamp(word.start_time) }} - {{ formatTimestamp(word.end_time) }}
-                      </span>
-                    </div>
-                  </div>
+                <div class="mt-2">
+                  <WordTimestamps
+                    :words="asrResult.words"
+                    :audio-url="getAudioUrl()"
+                  />
                 </div>
               </div>
 
@@ -262,6 +254,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import WordTimestamps from '@/components/WordTimestamps.vue'
 
 interface Props {
   nimId: string
@@ -358,6 +351,15 @@ const formatTimestamp = (seconds: number): string => {
   const secs = Math.floor(seconds % 60)
   const ms = Math.floor((seconds % 1) * 1000)
   return `${mins}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`
+}
+
+const getAudioUrl = (): string | undefined => {
+  if (uploadedFile.value) {
+    return URL.createObjectURL(uploadedFile.value)
+  } else if (recordedAudio.value) {
+    return URL.createObjectURL(recordedAudio.value)
+  }
+  return undefined
 }
 
 const handleFileUpload = (event: Event) => {

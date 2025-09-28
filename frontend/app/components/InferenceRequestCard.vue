@@ -77,6 +77,12 @@
           :request="request"
         />
 
+        <!-- Parakeet ASR (Speech Recognition) -->
+        <ParakeetCard
+          v-else-if="isParakeetNim"
+          :request="request"
+        />
+
         <!-- Other NIM types - placeholder for now -->
         <div v-else class="space-y-3">
           <div class="text-sm">
@@ -113,6 +119,7 @@ import SchnellCard from './SchnellCard.vue'
 import TrellisCard from './TrellisCard.vue'
 import StudioVoiceCard from './StudioVoiceCard.vue'
 import PaddleOcrCard from './PaddleOcrCard.vue'
+import ParakeetCard from './ParakeetCard.vue'
 
 // Props
 interface Props {
@@ -167,6 +174,14 @@ const isPaddleOcrNim = computed(() => {
          props.request.type === 'TEXT_DETECTION' ||
          props.request.request_type === 'text_detection' ||
          props.request.nim_id.includes('ocr')
+})
+
+const isParakeetNim = computed(() => {
+  return props.request.nim_id.includes('parakeet') ||
+         props.request.nim_id.includes('asr') ||
+         props.request.type === 'SPEECH_RECOGNITION' ||
+         props.request.request_type === 'speech_recognition' ||
+         props.request.nim_id.includes('riva')
 })
 
 const statusVariant = computed(() => {

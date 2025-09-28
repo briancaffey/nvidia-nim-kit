@@ -1,30 +1,10 @@
 <template>
+  <!-- Hero Section with Image Carousel - Full Width -->
+  <section class="pt-0 pb-16">
+    <JumboCarousel />
+  </section>
+
   <div class="container mx-auto px-4 py-8">
-    <!-- Hero Section -->
-    <section class="text-center py-16">
-      <div class="max-w-3xl mx-auto">
-        <div class="flex justify-center mb-8">
-          <Logo width="100" height="100" />
-        </div>
-        <h1 class="text-4xl font-bold tracking-tight sm:text-6xl mb-6">
-          Welcome to <span class="text-primary">NIM Kit</span>
-        </h1>
-        <p class="text-xl text-muted-foreground mb-8">
-          A powerful toolkit for building modern applications with NVIDIA's cutting-edge technology.
-        </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button size="lg" class="text-lg px-8">
-            Get Started
-            <Icon name="lucide:arrow-right" class="ml-2 h-5 w-5" />
-          </Button>
-          <NuxtLink to="/about">
-            <Button variant="outline" size="lg" class="text-lg px-8">
-              Learn More
-            </Button>
-          </NuxtLink>
-        </div>
-      </div>
-    </section>
 
     <!-- Features Section -->
     <section class="py-16">

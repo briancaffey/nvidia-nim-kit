@@ -23,7 +23,7 @@
                   useNvidiaApi ? 'text-[#74b900]' : (isActive('/nvidia-config') ? 'text-primary' : 'text-muted-foreground')
                 ]"
               >
-                NVIDIA Config
+                NVIDIA API Config
               </NuxtLink>
               <Switch
                 id="nvidia-api-toggle"
@@ -32,13 +32,13 @@
                 class="data-[state=checked]:bg-primary"
               />
             </div>
-            <NuxtLink
+            <!-- <NuxtLink
               to="/nim-config"
               class="text-sm font-medium transition-colors hover:text-primary"
               :class="isActive('/nim-config') ? 'text-primary' : 'text-muted-foreground'"
             >
               NIM Config
-            </NuxtLink>
+            </NuxtLink> -->
             <NuxtLink
               to="/nims"
               class="text-sm font-medium transition-colors hover:text-primary"
@@ -91,7 +91,7 @@
                 ]"
                 @click="mobileMenuOpen = false"
               >
-                NVIDIA Config
+                NVIDIA API Config
               </NuxtLink>
               <Switch
                 id="nvidia-api-toggle-mobile"
@@ -100,14 +100,14 @@
                 class="data-[state=checked]:bg-primary"
               />
             </div>
-            <NuxtLink
+            <!-- <NuxtLink
               to="/nim-config"
               class="text-sm font-medium transition-colors hover:text-primary px-2 py-1 rounded-md"
               :class="isActive('/nim-config') ? 'text-primary bg-accent' : 'text-muted-foreground'"
               @click="mobileMenuOpen = false"
             >
               NIM Config
-            </NuxtLink>
+            </NuxtLink> -->
             <NuxtLink
               to="/nims"
               class="text-sm font-medium transition-colors hover:text-primary px-2 py-1 rounded-md"
