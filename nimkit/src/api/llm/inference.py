@@ -30,6 +30,7 @@ class InferenceRequestBody(BaseModel):
     stream: Optional[bool] = False
     logprobs: Optional[bool] = False
     top_logprobs: Optional[int] = None
+    nvext: Optional[Dict[str, Any]] = None
 
     @validator("top_logprobs")
     def validate_top_logprobs(cls, v, values):
@@ -51,6 +52,7 @@ class CompletionRequestBody(BaseModel):
     stream: Optional[bool] = False
     logprobs: Optional[bool] = False
     top_logprobs: Optional[int] = None
+    nvext: Optional[Dict[str, Any]] = None
 
     @validator("top_logprobs")
     def validate_top_logprobs(cls, v, values):

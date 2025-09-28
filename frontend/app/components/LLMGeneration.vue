@@ -145,82 +145,134 @@
 
         <!-- Configuration Modal -->
         <Dialog v-model:open="showConfigModal">
-          <DialogContent class="max-w-md">
+          <DialogContent class="!w-[95vw] !max-w-[95vw] !sm:max-w-[95vw] !md:max-w-[95vw] !lg:max-w-[95vw] !xl:max-w-[95vw]">
             <DialogHeader>
               <DialogTitle>Advanced Configuration</DialogTitle>
               <DialogDescription>
                 Configure advanced LLM inference parameters
               </DialogDescription>
             </DialogHeader>
-            <div class="space-y-6">
-              <!-- Model Selection -->
-              <div class="space-y-2">
-                <Label for="model">Model</Label>
-                <div class="relative">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Left Column - Basic Configuration -->
+              <div class="space-y-6">
+                <h3 class="text-lg font-semibold">Basic Configuration</h3>
+
+                <!-- Model Selection -->
+                <div class="space-y-2">
+                  <Label for="model">Model</Label>
+                  <div class="relative">
+                    <Input
+                      id="model"
+                      v-model="config.model"
+                      placeholder="e.g., llama-3.1-8b-instruct"
+                      :disabled="isLoadingModels"
+                    />
+                    <Icon name="lucide:loader-2" v-if="isLoadingModels" class="absolute right-3 top-3 h-4 w-4 animate-spin" />
+                  </div>
+                </div>
+
+                <!-- Temperature -->
+                <div class="space-y-2">
+                  <Label for="temperature">Temperature</Label>
                   <Input
-                    id="model"
-                    v-model="config.model"
-                    placeholder="e.g., llama-3.1-8b-instruct"
-                    :disabled="isLoadingModels"
+                    id="temperature"
+                    v-model.number="config.temperature"
+                    type="number"
+                    min="0"
+                    max="2"
+                    step="0.1"
+                    placeholder="0.7"
                   />
-                  <Icon name="lucide:loader-2" v-if="isLoadingModels" class="absolute right-3 top-3 h-4 w-4 animate-spin" />
+                </div>
+
+                <!-- Max Tokens -->
+                <div class="space-y-2">
+                  <Label for="max-tokens">Max Tokens</Label>
+                  <Input
+                    id="max-tokens"
+                    v-model.number="config.max_tokens"
+                    type="number"
+                    placeholder="2048"
+                  />
+                </div>
+
+                <!-- Stream Toggle -->
+                <div class="flex items-center space-x-2">
+                  <Switch
+                    id="stream"
+                    v-model="config.stream"
+                  />
+                  <Label for="stream">Stream Response</Label>
+                </div>
+
+                <!-- Logprobs Toggle -->
+                <div class="flex items-center space-x-2">
+                  <Switch
+                    id="logprobs"
+                    v-model="config.logprobs"
+                  />
+                  <Label for="logprobs">Enable Logprobs</Label>
+                </div>
+
+                <!-- Top Logprobs -->
+                <div v-if="config.logprobs" class="space-y-2">
+                  <Label for="top-logprobs">Top Logprobs</Label>
+                  <Input
+                    id="top-logprobs"
+                    v-model.number="config.top_logprobs"
+                    type="number"
+                    min="1"
+                    max="10"
+                    placeholder="1"
+                  />
                 </div>
               </div>
 
-              <!-- Temperature -->
-              <div class="space-y-2">
-                <Label for="temperature">Temperature</Label>
-                <Input
-                  id="temperature"
-                  v-model.number="config.temperature"
-                  type="number"
-                  min="0"
-                  max="2"
-                  step="0.1"
-                  placeholder="0.7"
-                />
-              </div>
+              <!-- Right Column - Advanced Configuration -->
+              <div class="space-y-6">
+                <h3 class="text-lg font-semibold">Advanced Configuration</h3>
 
-              <!-- Max Tokens -->
-              <div class="space-y-2">
-                <Label for="max-tokens">Max Tokens</Label>
-                <Input
-                  id="max-tokens"
-                  v-model.number="config.max_tokens"
-                  type="number"
-                  placeholder="2048"
-                />
-              </div>
+                <!-- Guided JSON -->
+                <div class="space-y-2">
+                  <Label for="guided-json">Guided JSON Schema</Label>
+                  <Textarea
+                    id="guided-json"
+                    v-model="config.nvext.guided_json"
+                    placeholder='{"type": "object", "properties": {...}}'
+                    rows="2"
+                  />
+                  <p class="text-xs text-muted-foreground">
+                    JSON schema to guide the model's output format
+                  </p>
+                </div>
 
-              <!-- Stream Toggle -->
-              <div class="flex items-center space-x-2">
-                <Switch
-                  id="stream"
-                  v-model="config.stream"
-                />
-                <Label for="stream">Stream Response</Label>
-              </div>
+                <!-- Guided Regex -->
+                <div class="space-y-2">
+                  <Label for="guided-regex">Guided Regex Pattern</Label>
+                  <Textarea
+                    id="guided-regex"
+                    v-model="config.nvext.guided_regex"
+                    placeholder="^[A-Z][a-z]+$"
+                    rows="2"
+                  />
+                  <p class="text-xs text-muted-foreground">
+                    Regular expression pattern to constrain the model's output
+                  </p>
+                </div>
 
-              <!-- Logprobs Toggle -->
-              <div class="flex items-center space-x-2">
-                <Switch
-                  id="logprobs"
-                  v-model="config.logprobs"
-                />
-                <Label for="logprobs">Enable Logprobs</Label>
-              </div>
-
-              <!-- Top Logprobs -->
-              <div v-if="config.logprobs" class="space-y-2">
-                <Label for="top-logprobs">Top Logprobs</Label>
-                <Input
-                  id="top-logprobs"
-                  v-model.number="config.top_logprobs"
-                  type="number"
-                  min="1"
-                  max="10"
-                  placeholder="1"
-                />
+                <!-- Guided Grammar -->
+                <div class="space-y-2">
+                  <Label for="guided-grammar">Guided Grammar</Label>
+                  <Textarea
+                    id="guided-grammar"
+                    v-model="config.nvext.guided_grammar"
+                    placeholder="?start: &quot;The movie name is rated &quot; rating &quot; stars.&quot;&#10;?rating: /[1-5]/"
+                    rows="2"
+                  />
+                  <p class="text-xs text-muted-foreground">
+                    Lark grammar specification to control the model's output structure
+                  </p>
+                </div>
               </div>
             </div>
             <DialogFooter>
@@ -295,11 +347,22 @@
         <!-- Response Panel -->
         <Card v-if="response || isLoading" class="h-[600px] flex flex-col">
           <CardHeader>
-            <div class="flex items-center gap-2">
-              <CardTitle>Response</CardTitle>
-              <Badge v-if="successMessage && !isLoading" variant="default" class="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-200 dark:border-green-800">
-                Success
-              </Badge>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <CardTitle>Response</CardTitle>
+                <Badge v-if="successMessage && !isLoading" variant="default" class="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-200 dark:border-green-800">
+                  Success
+                </Badge>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                @click="showJsonModal = true"
+                class="flex items-center gap-2"
+              >
+                <Icon name="lucide:code" class="h-4 w-4" />
+                View JSON
+              </Button>
             </div>
             <CardDescription>
               {{ isLoading ? 'Generating response...' : `Inference result from ${nimId}` }}
@@ -359,6 +422,31 @@
             <p>Run an inference to see results here</p>
           </div>
         </Card>
+
+        <!-- JSON Viewer Modal -->
+        <Dialog v-model:open="showJsonModal">
+          <DialogContent class="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Request/Response JSON</DialogTitle>
+              <DialogDescription>
+                View the complete request body and response data
+              </DialogDescription>
+            </DialogHeader>
+            <div class="space-y-4">
+              <div>
+                <Label class="text-sm font-medium">Request Body</Label>
+                <pre class="mt-2 p-4 bg-muted rounded-lg text-sm overflow-auto max-h-64 text-foreground">{{ JSON.stringify(getRequestBodyForDisplay(), null, 2) }}</pre>
+              </div>
+              <div v-if="response">
+                <Label class="text-sm font-medium">Response Data</Label>
+                <pre class="mt-2 p-4 bg-muted rounded-lg text-sm overflow-auto max-h-64 text-foreground">{{ JSON.stringify(response, null, 2) }}</pre>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button @click="showJsonModal = false">Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   </div>
@@ -404,6 +492,7 @@ const successMessage = ref('')
 const response = ref<any>(null)
 const showConfigModal = ref(false)
 const showConfigForm = ref(false)
+const showJsonModal = ref(false)
 const tokens = ref<Token[]>([])
 const streamingChunks = ref<any[]>([])
 const responseContainer = ref<HTMLElement>()
@@ -427,7 +516,16 @@ const config = ref({
   max_tokens: 2048,
   stream: false,
   logprobs: false,
-  top_logprobs: 1
+  top_logprobs: 1,
+  nvext: {
+    ignore_eos: true,
+    repetition_penalty: 1,
+    top_k: -1,
+    guided_choice: [],
+    guided_json: '',
+    guided_regex: '',
+    guided_grammar: ''
+  }
 })
 
 // Computed properties
@@ -598,6 +696,12 @@ const runInference = async () => {
         top_logprobs: config.value.logprobs ? config.value.top_logprobs : undefined
       }
 
+      // Add nvext parameters directly to request body if any are configured
+      const nvextParams = getNvextParams()
+      if (Object.keys(nvextParams).length > 0) {
+        requestBody.nvext = nvextParams
+      }
+
       endpoint = `${apiBase}/api/llm/inference?nim_id=${encodeURIComponent(props.nimId)}&use_nvidia_api=${await getNvidiaApiToggle()}`
     } else {
       // Build request body for completion
@@ -609,6 +713,12 @@ const runInference = async () => {
         stream: config.value.stream,
         logprobs: config.value.logprobs,
         top_logprobs: config.value.logprobs ? config.value.top_logprobs : undefined
+      }
+
+      // Add nvext parameters directly to request body if any are configured
+      const nvextParams = getNvextParams()
+      if (Object.keys(nvextParams).length > 0) {
+        requestBody.nvext = nvextParams
       }
 
       endpoint = `${apiBase}/api/llm/completion?nim_id=${encodeURIComponent(props.nimId)}&use_nvidia_api=${await getNvidiaApiToggle()}`
@@ -735,6 +845,96 @@ const getNvidiaApiToggle = async (): Promise<boolean> => {
   const toggleResponse = await fetch(`${apiBase}/api/nvidia/toggle`)
   const toggleData = await toggleResponse.json()
   return toggleData.enabled
+}
+
+const getNvextParams = () => {
+  const nvext = config.value.nvext
+  const params: any = {}
+
+  // Only include parameters that have values
+  if (nvext.guided_json) {
+    try {
+      params.guided_json = JSON.parse(nvext.guided_json)
+    } catch (e) {
+      // If JSON parsing fails, include as string
+      params.guided_json = nvext.guided_json
+    }
+  }
+
+  if (nvext.guided_regex) {
+    params.guided_regex = nvext.guided_regex
+  }
+
+  if (nvext.guided_grammar) {
+    params.guided_grammar = nvext.guided_grammar
+  }
+
+  // Include other nvext parameters if they differ from defaults
+  if (nvext.ignore_eos !== true) {
+    params.ignore_eos = nvext.ignore_eos
+  }
+
+  if (nvext.repetition_penalty !== 1) {
+    params.repetition_penalty = nvext.repetition_penalty
+  }
+
+  if (nvext.top_k !== -1) {
+    params.top_k = nvext.top_k
+  }
+
+  if (nvext.guided_choice && nvext.guided_choice.length > 0) {
+    params.guided_choice = nvext.guided_choice
+  }
+
+  return params
+}
+
+const getRequestBodyForDisplay = () => {
+  let requestBody: any
+
+  if (mode.value === 'chat') {
+    // Build messages array for chat
+    const messages = []
+    if (systemPrompt.value) {
+      messages.push({
+        role: 'system',
+        content: systemPrompt.value
+      })
+    }
+    messages.push({
+      role: 'user',
+      content: userInput.value
+    })
+
+    requestBody = {
+      model: config.value.model,
+      messages,
+      temperature: config.value.temperature,
+      max_tokens: config.value.max_tokens,
+      stream: config.value.stream,
+      logprobs: config.value.logprobs,
+      top_logprobs: config.value.logprobs ? config.value.top_logprobs : undefined
+    }
+  } else {
+    // Build request body for completion
+    requestBody = {
+      model: config.value.model,
+      prompt: userInput.value,
+      temperature: config.value.temperature,
+      max_tokens: config.value.max_tokens,
+      stream: config.value.stream,
+      logprobs: config.value.logprobs,
+      top_logprobs: config.value.logprobs ? config.value.top_logprobs : undefined
+    }
+  }
+
+  // Add nvext parameters directly to request body if any are configured
+  const nvextParams = getNvextParams()
+  if (Object.keys(nvextParams).length > 0) {
+    requestBody.nvext = nvextParams
+  }
+
+  return requestBody
 }
 
 const enableNvidiaApi = async () => {
