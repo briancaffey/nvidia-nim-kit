@@ -38,6 +38,7 @@ class ImageGenerationRequest(BaseModel):
         688,
         720,
         752,
+        768,
         800,
         832,
         880,

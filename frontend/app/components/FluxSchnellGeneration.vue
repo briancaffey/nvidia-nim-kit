@@ -141,8 +141,55 @@
 
                 <!-- Image Preview and Conversion Controls -->
                 <div v-if="uploadedImagePreview" class="mt-4 space-y-4">
-                  <!-- Original Image Preview -->
-                  <div class="space-y-2">
+                  <!-- Side by side image comparison for canny/depth modes -->
+                  <div v-if="(formData.mode === 'canny' || formData.mode === 'depth') && convertedImagePreview" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Original Image -->
+                    <div class="space-y-2">
+                      <h4 class="text-sm font-medium">Original Image</h4>
+                      <img
+                        :src="uploadedImagePreview"
+                        alt="Uploaded image preview"
+                        class="w-full rounded-lg border"
+                      />
+                      <p class="text-xs text-muted-foreground">
+                        Dimensions: {{ uploadedImageDimensions?.width }}×{{ uploadedImageDimensions?.height }}
+                      </p>
+                    </div>
+
+                    <!-- Guidance Image -->
+                    <div class="space-y-2">
+                      <h4 class="text-sm font-medium">Guidance Image</h4>
+                      <img
+                        :src="convertedImagePreview"
+                        alt="Guidance image preview"
+                        class="w-full rounded-lg border"
+                      />
+                      <p class="text-xs text-muted-foreground">
+                        {{ formData.mode === 'canny' ? 'Edge-detected image' : 'Depth map visualization' }}
+                      </p>
+                      <div class="flex gap-2">
+                        <Button
+                          @click="useConvertedImage"
+                          variant="default"
+                          size="sm"
+                        >
+                          <Icon name="lucide:check" class="h-4 w-4 mr-2" />
+                          Use This Image
+                        </Button>
+                        <Button
+                          @click="resetConvertedImage"
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Icon name="lucide:x" class="h-4 w-4 mr-2" />
+                          Reset
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Single original image preview for other cases -->
+                  <div v-else class="space-y-2">
                     <h4 class="text-sm font-medium">Original Image</h4>
                     <img
                       :src="uploadedImagePreview"
@@ -274,36 +321,6 @@
                     </p>
                   </div>
 
-                  <!-- Converted Image Preview -->
-                  <div v-if="convertedImagePreview && !isFluxKontext" class="space-y-2">
-                    <h4 class="text-sm font-medium">Converted Image</h4>
-                    <img
-                      :src="convertedImagePreview"
-                      alt="Converted image preview"
-                      class="w-full max-w-xs rounded-lg border"
-                    />
-                    <p class="text-xs text-muted-foreground">
-                      {{ formData.mode === 'canny' ? 'Edge-detected image' : 'Depth map visualization' }}
-                    </p>
-                    <div class="flex gap-2">
-                      <Button
-                        @click="useConvertedImage"
-                        variant="default"
-                        size="sm"
-                      >
-                        <Icon name="lucide:check" class="h-4 w-4 mr-2" />
-                        Use This Image
-                      </Button>
-                      <Button
-                        @click="resetConvertedImage"
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Icon name="lucide:x" class="h-4 w-4 mr-2" />
-                        Reset
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -321,6 +338,7 @@
                     <SelectItem :value="688">688px</SelectItem>
                     <SelectItem :value="720">720px</SelectItem>
                     <SelectItem :value="752">752px</SelectItem>
+                    <SelectItem :value="768">768px</SelectItem>
                     <SelectItem :value="800">800px</SelectItem>
                     <SelectItem :value="832">832px</SelectItem>
                     <SelectItem :value="880">880px</SelectItem>
@@ -349,6 +367,7 @@
                     <SelectItem :value="688">688px</SelectItem>
                     <SelectItem :value="720">720px</SelectItem>
                     <SelectItem :value="752">752px</SelectItem>
+                    <SelectItem :value="768">768px</SelectItem>
                     <SelectItem :value="800">800px</SelectItem>
                     <SelectItem :value="832">832px</SelectItem>
                     <SelectItem :value="880">880px</SelectItem>
@@ -832,7 +851,7 @@ const formatDate = (dateString: string) => {
 }
 
 // Supported dimensions for Flux models
-const supportedDimensions = [672, 688, 720, 752, 800, 832, 880, 944, 1024, 1104, 1184, 1248, 1328, 1392, 1456, 1504, 1568]
+const supportedDimensions = [672, 688, 720, 752, 768, 800, 832, 880, 944, 1024, 1104, 1184, 1248, 1328, 1392, 1456, 1504, 1568]
 
 // Find the closest supported dimension
 const findClosestDimension = (value: number): number => {

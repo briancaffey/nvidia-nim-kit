@@ -73,7 +73,11 @@ def extract_text_from_image(
         }
 
         # Make inference request
-        url = f"{api_endpoint}/v1/infer"
+        # For NVIDIA API, use the endpoint directly; for local NIM, append /v1/infer
+        if api_endpoint.startswith("https://ai.api.nvidia.com"):
+            url = api_endpoint
+        else:
+            url = f"{api_endpoint}/v1/infer"
 
         logger.info(f"Making PaddleOCR request to: {url}")
         logger.debug(f"Request payload: {json.dumps(payload, indent=2)}")
