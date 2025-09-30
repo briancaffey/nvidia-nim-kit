@@ -7,7 +7,9 @@
           <!-- Logo/Brand -->
           <div class="flex items-center space-x-2">
             <NuxtLink to="/" class="flex items-center">
-              <Logo width="40" height="40" />
+              <div class="h-12 w-10 flex items-center justify-center mr-1">
+                <Logo width="26" height="34" />
+              </div>
               <span class="text-xl font-bold">NIM Kit</span>
             </NuxtLink>
           </div>
@@ -152,7 +154,9 @@
           <!-- Brand Section -->
           <div class="md:col-span-2">
             <div class="flex items-center mb-4">
-              <Logo width="40" height="40" />
+              <div class="h-12 w-10 flex items-center justify-center mr-1">
+                <Logo width="26" height="34" />
+              </div>
               <span class="text-xl font-bold">NIM Kit</span>
             </div>
             <p class="text-muted-foreground mb-4 max-w-md">

@@ -6,6 +6,8 @@
       :class="imgClass"
       :width="width"
       :height="height"
+      class="object-contain max-h-full"
+      style="max-height: 100%;"
     />
   </div>
 </template>
@@ -29,8 +31,6 @@ const props = withDefaults(defineProps<Props>(), {
 const colorMode = useColorMode()
 
 const logoPath = computed(() => {
-  return colorMode.value === 'dark'
-    ? '/img/nim_white.png'
-    : '/img/nim_black.png'
+  return '/img/nim_white.png'
 })
 </script>

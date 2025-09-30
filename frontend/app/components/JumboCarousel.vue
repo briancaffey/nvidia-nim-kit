@@ -20,15 +20,15 @@
 
     <!-- Content Overlay -->
     <div class="absolute inset-0 flex items-center justify-center z-10">
-      <div class="text-center text-white px-4 max-w-3xl mx-auto">
-        <div class="flex justify-center mb-8">
-          <Logo width="100" height="100" />
+      <div class="text-center text-white px-4 max-w-3xl mx-auto transform -translate-y-8">
+        <div class="flex justify-center mb-4">
+          <Logo width="60" height="80" />
         </div>
         <h1 class="text-4xl font-bold tracking-tight sm:text-6xl mb-6">
           Welcome to <span class="text-primary">NIM Kit</span>
         </h1>
         <p class="text-xl text-white/90 mb-8">
-          A powerful toolkit for building modern applications with NVIDIA's cutting-edge technology.
+          A powerful toolkit for building AI applications with NVIDIA NIMs.
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
           <Button size="lg" class="text-lg px-8">

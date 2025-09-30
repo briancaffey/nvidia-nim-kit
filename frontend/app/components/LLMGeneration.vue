@@ -164,7 +164,7 @@
                     <Input
                       id="model"
                       v-model="config.model"
-                      placeholder="e.g., llama-3.1-8b-instruct"
+                      placeholder="e.g., meta-llama/llama-3.1-8b-instruct"
                       :disabled="isLoadingModels"
                     />
                     <Icon name="lucide:loader-2" v-if="isLoadingModels" class="absolute right-3 top-3 h-4 w-4 animate-spin" />
@@ -511,7 +511,7 @@ const userInput = ref('')
 
 // Configuration
 const config = ref({
-  model: 'llama-3.1-8b-instruct',
+  model: 'meta-llama/llama-3.1-8b-instruct',
   temperature: 0.7,
   max_tokens: 2048,
   stream: false,

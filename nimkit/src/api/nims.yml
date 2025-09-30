@@ -28,7 +28,7 @@
 - id: meta/llama-3_1-8b-instruct
   url: https://build.nvidia.com/meta/llama-3_1-8b-instruct
   invoke_url: https://integrate.api.nvidia.com/v1
-  model: meta/llama-3.1-8b-instruct
+  model: meta-llama/llama-3.1-8b-instruct
   type: llm
   tags:
     - chat
