@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.6.0](https://github.com/briancaffey/nvidia-nim-kit/compare/v1.5.0...v1.6.0) (2025-09-30)
+
+
+### Features
+
+* **readme:** update readme and contributing.md ([af70fac](https://github.com/briancaffey/nvidia-nim-kit/commit/af70facb4a8641888926db3984186a21324be4da))
+
+
+### Bug Fixes
+
+* **logo:** fix logo and home page ([26ff5e6](https://github.com/briancaffey/nvidia-nim-kit/commit/26ff5e6b9409a89cac2c7c62fe16ea9f0c3496e7))
+
 ## [1.5.0](https://github.com/briancaffey/nvidia-nim-kit/compare/v1.4.0...v1.5.0) (2025-09-29)
 
 
