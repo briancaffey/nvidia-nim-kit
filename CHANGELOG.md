@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.5.0](https://github.com/briancaffey/nvidia-nim-kit/compare/v1.4.0...v1.5.0) (2025-09-29)
+
+
+### Features
+
+* **asr:** improve output visualization for asr nim ([0a8a1d6](https://github.com/briancaffey/nvidia-nim-kit/commit/0a8a1d677cc5e75f2c9c455994ba8cf97991debd))
+* **llm:** refactor llm components ([b061531](https://github.com/briancaffey/nvidia-nim-kit/commit/b0615311cee72b6d2bc7fc9711d60440f15da284))
+* **nvext:** add support for nvext parameters in llm interface ([ae5aa82](https://github.com/briancaffey/nvidia-nim-kit/commit/ae5aa82be0d7b3d49804de01f7580de5cdf0d3c3))
+* **observability:** add prometheus metrics collection and grafana dashboards for nim metrics ([41f3045](https://github.com/briancaffey/nvidia-nim-kit/commit/41f30454429e61ec52cdf86f5be11f52dad13eec))
+* **paddleocr:** add support for baidu paddleocr inference ([ae9f2a6](https://github.com/briancaffey/nvidia-nim-kit/commit/ae9f2a66858f6f4acdb7538e3f7f2627fc4dad49))
+
+
+### Bug Fixes
+
+* **config:** refactor nim config form and add nim config form to nim page ([91eab31](https://github.com/briancaffey/nvidia-nim-kit/commit/91eab318d53439e61beea1192f925f37fd667bb8))
+* **image:** fix flux kontext dev image generation ([47a0ac1](https://github.com/briancaffey/nvidia-nim-kit/commit/47a0ac1f39110b5fa886b42c1eb6a7156e767b4e))
+* **llm:** fix model name issue with llm nims ([0247d61](https://github.com/briancaffey/nvidia-nim-kit/commit/0247d61174f987920a32b7bcb443c1c5cd066f38))
+* **llm:** remove unused frontend code ([c02fd5c](https://github.com/briancaffey/nvidia-nim-kit/commit/c02fd5c6789f2ae4fff6cb9da0b307579d8c893e))
+* **logo:** update logo ([e9a50e4](https://github.com/briancaffey/nvidia-nim-kit/commit/e9a50e4e717158ae9febe767a920b7e145ef4b24))
+* **metrics:** remove backend and frontend metrics code, using prometheus and grafana instead ([e7d83a8](https://github.com/briancaffey/nvidia-nim-kit/commit/e7d83a846339f918e173ee7806293662f4f75f4f))
+* **misc:** fix issues with paddleocr and flux ui ([8c4187a](https://github.com/briancaffey/nvidia-nim-kit/commit/8c4187a19288e420aed3e5cbb5ec1c9d7bcaa10e))
+
 ## [1.4.0](https://github.com/briancaffey/nvidia-nim-kit/compare/v1.3.0...v1.4.0) (2025-09-24)
 
 
