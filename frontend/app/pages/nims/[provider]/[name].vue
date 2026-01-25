@@ -175,6 +175,25 @@
         <StudioVoiceGeneration :nim-id="nimId" />
       </div>
 
+      <!-- Magpie TTS Generation Component -->
+      <div v-else-if="isTtsModel">
+        <!-- Show config form if not configured -->
+        <div v-if="!nimConfig" class="mb-8">
+          <NIMConfigForm
+            :nim-id="nimId"
+            :nim-id-disabled="true"
+            title="Configure This NIM"
+            description="Configure the TTS NIM to start generating speech. Set the host and port where your Magpie TTS NIM is running (default: localhost:9000)."
+            submit-text="Configure NIM"
+            @submit="handleConfigSubmit"
+            @success="handleConfigSuccess"
+            @error="handleConfigError"
+          />
+        </div>
+        <!-- Show TTS component when configured -->
+        <MagpieTtsGeneration v-else :nim-id="nimId" :nim-config="nimConfig" />
+      </div>
+
       <!-- PaddleOCR Generation Component -->
       <div v-else-if="isPaddleocrModel">
         <PaddleOcrGeneration :nim-id="nimId" />
@@ -209,7 +228,7 @@
       </div>
 
       <!-- Fallback Form for Unimplemented NIMs -->
-      <div v-if="nimConfig && !isFluxModel && !isTrellisModel && !isAsrModel && !isStudioVoiceModel && !isPaddleocrModel && !isLLMModel" class="mb-8">
+      <div v-if="nimConfig && !isFluxModel && !isTrellisModel && !isAsrModel && !isStudioVoiceModel && !isTtsModel && !isPaddleocrModel && !isLLMModel" class="mb-8">
         <Card>
           <CardHeader>
             <CardTitle class="flex items-center gap-2">
@@ -254,6 +273,7 @@ import TrellisGeneration from '~/components/TrellisGeneration.vue'
 import RivaAsrGeneration from '~/components/RivaAsrGeneration.vue'
 import StudioVoiceGeneration from '~/components/StudioVoiceGeneration.vue'
 import PaddleOcrGeneration from '~/components/PaddleOcrGeneration.vue'
+import MagpieTtsGeneration from '~/components/MagpieTtsGeneration.vue'
 import LLMGeneration from '~/components/LLMGeneration.vue'
 import NIMConfigForm from '~/components/NIMConfigForm.vue'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '~/components/ui/dialog'
@@ -321,6 +341,11 @@ const isStudioVoiceModel = computed(() => {
 // Check if this is a PaddleOCR model
 const isPaddleocrModel = computed(() => {
   return nimId.value === 'baidu/paddleocr'
+})
+
+// Check if this is a TTS model
+const isTtsModel = computed(() => {
+  return nimId.value === 'nvidia/magpie-tts-multilingual'
 })
 
 // Check if this is an LLM model

@@ -1309,6 +1309,207 @@ async def perform_speech_enhancement_inference(
         )
 
 
+async def perform_tts_inference(
+    nim_id: str,
+    request_data: Dict[str, Any],
+    inference_request: InferenceRequest,
+    use_nvidia_api: bool = False,
+) -> Dict[str, Any]:
+    """
+    Perform TTS (Text-to-Speech) inference for a NIM.
+
+    Args:
+        nim_id: The NIM ID in format 'publisher/model_name'
+        request_data: The request payload containing text, language, voice, sample_rate_hz
+        inference_request: The InferenceRequest object to update
+        use_nvidia_api: Whether to use NVIDIA API instead of local NIM
+
+    Returns:
+        The response data from the NIM
+
+    Raises:
+        HTTPException: If inference fails
+    """
+    try:
+        # Validate NIM exists and get configuration
+        nim_data, nim_metadata = validate_nim_exists(nim_id)
+
+        # Get request parameters
+        text = request_data.get("text", "")
+        language = request_data.get("language", "en-US")
+        voice = request_data.get("voice")
+        sample_rate_hz = request_data.get("sample_rate_hz", 22050)
+
+        if use_nvidia_api:
+            # Use NVIDIA API endpoint
+            invoke_url = nim_metadata.get("invoke_url")
+            if not invoke_url:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"NVIDIA API invoke_url not found for NIM {nim_id}",
+                )
+
+            headers = get_nvidia_api_headers()
+        else:
+            # Use the local NIM endpoint from Redis configuration
+            base_url = f"http://{nim_data.host}:{nim_data.port}"
+            invoke_url = f"{base_url}/v1/audio/synthesize"
+
+            # Prepare headers for local NIM
+            headers = {"accept": "audio/wav"}
+
+        logger.info(f"Performing TTS inference for {nim_id}")
+        logger.debug(f"NIM type: {nim_data.nim_type}")
+        logger.debug(f"NIM metadata: {nim_metadata}")
+        logger.info(f"Invoke URL: {invoke_url}")
+        logger.debug(f"Text: {text[:100]}..." if len(text) > 100 else f"Text: {text}")
+        logger.debug(f"Language: {language}, Voice: {voice}, Sample Rate: {sample_rate_hz}")
+
+        # Prepare multipart form data
+        form_data = {
+            "text": text,
+            "language": language,
+            "sample_rate_hz": str(sample_rate_hz),
+        }
+
+        if voice:
+            form_data["voice"] = voice
+
+        # Make the request to the NIM
+        logger.debug("Making POST request to TTS NIM")
+        response = requests.post(
+            invoke_url,
+            data=form_data,
+            headers=headers,
+            timeout=120,  # 2 minute timeout for TTS
+        )
+        logger.debug(
+            f"Response received. Status: {response.status_code}, Content-Type: {response.headers.get('content-type', 'unknown')}"
+        )
+
+        # Check if request was successful
+        if response.status_code != 200:
+            error_msg = f"TTS inference failed with status {response.status_code}: {response.text}"
+            logger.error(error_msg)
+
+            # Update inference request with error
+            inference_request.status = "error"
+            inference_request.set_error(
+                {
+                    "status_code": response.status_code,
+                    "error": response.text,
+                    "nim_id": nim_id,
+                    "invoke_url": invoke_url,
+                }
+            )
+            inference_request.update_timestamp()
+            inference_request.save()
+
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY, detail=error_msg
+            )
+
+        # Save audio file
+        request_id = inference_request.request_id
+        media_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "media"
+        )
+        tts_output_dir = os.path.join(media_dir, "tts", "output")
+        os.makedirs(tts_output_dir, exist_ok=True)
+
+        output_filename = f"{request_id}.wav"
+        output_path = os.path.join(tts_output_dir, output_filename)
+
+        logger.info(f"Saving TTS audio to: {output_path}")
+        try:
+            with open(output_path, "wb") as f:
+                f.write(response.content)
+            logger.info(f"Successfully saved TTS audio: {output_filename}")
+        except Exception as save_error:
+            logger.error(f"Failed to save TTS audio file: {save_error}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to save audio file: {str(save_error)}",
+            )
+
+        # Prepare response data
+        response_data = {
+            "audio_path": output_path,
+            "text": text,
+            "language": language,
+            "voice": voice,
+            "sample_rate_hz": sample_rate_hz,
+            "audio_size_bytes": len(response.content),
+        }
+
+        logger.info(f"TTS inference successful for {nim_id}")
+
+        # Update inference request with success
+        logger.debug("Updating InferenceRequest with success status")
+        inference_request.status = "completed"
+        inference_request.set_output(response_data)
+        inference_request.update_timestamp()
+        try:
+            inference_request.save()
+            logger.debug("InferenceRequest updated and saved successfully")
+        except Exception as save_error:
+            logger.error(f"Failed to save updated InferenceRequest: {save_error}")
+            logger.error(f"Save error type: {type(save_error).__name__}")
+            # Don't raise here, just log the error
+
+        return response_data
+
+    except requests.exceptions.Timeout:
+        error_msg = f"TTS inference timeout for {nim_id}"
+        logger.error(error_msg)
+
+        # Update inference request with timeout error
+        inference_request.status = "error"
+        inference_request.set_error(
+            {"error": "Request timeout", "nim_id": nim_id, "timeout_seconds": 120}
+        )
+        inference_request.update_timestamp()
+        inference_request.save()
+
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=error_msg
+        )
+
+    except requests.exceptions.RequestException as e:
+        error_msg = f"TTS inference request failed for {nim_id}: {str(e)}"
+        logger.error(error_msg)
+
+        # Update inference request with request error
+        inference_request.status = "error"
+        inference_request.set_error(
+            {"error": str(e), "nim_id": nim_id, "error_type": "RequestException"}
+        )
+        inference_request.update_timestamp()
+        inference_request.save()
+
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=error_msg)
+
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+
+    except Exception as e:
+        error_msg = f"Unexpected error during TTS inference for {nim_id}: {str(e)}"
+        logger.error(error_msg)
+
+        # Update inference request with unexpected error
+        inference_request.status = "error"
+        inference_request.set_error(
+            {"error": str(e), "nim_id": nim_id, "error_type": "UnexpectedError"}
+        )
+        inference_request.update_timestamp()
+        inference_request.save()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_msg
+        )
+
+
 async def perform_paddleocr_inference(
     nim_id: str,
     request_data: Dict[str, Any],
@@ -1514,6 +1715,10 @@ async def perform_inference(
         )
     elif nim_type == "paddleocr":
         return await perform_paddleocr_inference(
+            nim_id, request_data, inference_request, use_nvidia_api
+        )
+    elif nim_type == "tts":
+        return await perform_tts_inference(
             nim_id, request_data, inference_request, use_nvidia_api
         )
     else:

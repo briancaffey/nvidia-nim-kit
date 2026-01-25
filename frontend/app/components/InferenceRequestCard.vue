@@ -83,6 +83,12 @@
           :request="request"
         />
 
+        <!-- Magpie TTS (Text-to-Speech) -->
+        <MagpieTtsCard
+          v-else-if="isMagpieTtsNim"
+          :request="request"
+        />
+
         <!-- Other NIM types - placeholder for now -->
         <div v-else class="space-y-3">
           <div class="text-sm">
@@ -120,6 +126,7 @@ import TrellisCard from './TrellisCard.vue'
 import StudioVoiceCard from './StudioVoiceCard.vue'
 import PaddleOcrCard from './PaddleOcrCard.vue'
 import ParakeetCard from './ParakeetCard.vue'
+import MagpieTtsCard from './MagpieTtsCard.vue'
 
 // Props
 interface Props {
@@ -182,6 +189,13 @@ const isParakeetNim = computed(() => {
          props.request.type === 'SPEECH_RECOGNITION' ||
          props.request.request_type === 'speech_recognition' ||
          props.request.nim_id.includes('riva')
+})
+
+const isMagpieTtsNim = computed(() => {
+  return props.request.nim_id.includes('magpie') ||
+         props.request.nim_id.includes('tts') ||
+         props.request.type === 'TEXT_TO_SPEECH' ||
+         props.request.request_type === 'text_to_speech'
 })
 
 const statusVariant = computed(() => {

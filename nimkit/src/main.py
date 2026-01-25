@@ -18,6 +18,7 @@ from nimkit.src.api.speech_enhancement import router as speech_enhancement_route
 from nimkit.src.api.gallery import router as gallery_router
 from nimkit.src.api.image_conversion import router as image_conversion_router
 from nimkit.src.api.nvidia_api import router as nvidia_api_router
+from nimkit.src.api.tts import router as tts_router
 
 # Set up logging
 import os
@@ -75,6 +76,9 @@ app.include_router(image_conversion_router)
 
 # Include NVIDIA API routes
 app.include_router(nvidia_api_router)
+
+# Include TTS routes
+app.include_router(tts_router)
 
 # Mount static files for NIM images
 app.mount(

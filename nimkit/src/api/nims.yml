@@ -258,3 +258,18 @@
   description: NV-CLIP is a multimodal embeddings model for image and text.
   release-date: ''
   img: nvclip.webp
+
+- id: nvidia/magpie-tts-multilingual
+  url: https://build.nvidia.com/nvidia/magpie-tts-multilingual
+  invoke_url: https://integrate.api.nvidia.com/v1/audio/synthesize
+  type: tts
+  tags:
+    - digital human
+    - nvidia nim
+    - run-on-rtx
+    - text-to-speech
+    - multilingual
+    - voice agent
+  description: Multilingual text-to-speech model generating natural and expressive voices in multiple languages for voice agents and brand ambassadors.
+  release-date: '2025-01-01'
+  img: magpie-tts-multilingual.webp
