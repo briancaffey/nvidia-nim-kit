@@ -8,7 +8,7 @@ from redis_om import HashModel, Field
 import redis
 
 
-class InferenceRequest(HashModel):
+class InferenceRequest(HashModel, index=True):
     """Inference request data model using RedisOM."""
 
     request_id: str = Field(..., description="Request ID (UUID)")

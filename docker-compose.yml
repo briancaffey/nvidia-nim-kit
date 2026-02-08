@@ -12,8 +12,6 @@ services:
       - NVIDIA_API_KEY=${NVIDIA_API_KEY:-}
     volumes:
       - ./nimkit:/app/nimkit
-      - ./nimkit/media:/app/nimkit/media
-      - /app/.venv
     command: /app/.venv/bin/python -m uvicorn nimkit.src.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
       redis:
@@ -55,8 +53,6 @@ services:
       - CELERY_TASK_TIME_LIMIT=600
     volumes:
       - ./nimkit:/app/nimkit
-      - ./nimkit/media:/app/nimkit/media
-      - /app/.venv
     command: ["celery", "-A", "nimkit.src.celery_app:celery_app", "worker", "--loglevel=info", "--queues=nimkit_tasks", "--events"]
     depends_on:
       redis:
@@ -82,8 +78,6 @@ services:
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./nimkit:/app/nimkit
-      - ./nimkit/media:/app/nimkit/media
-      - /app/.venv
       - ./celery-data:/app/celery-data
     command: ["celery", "-A", "nimkit.src.celery_app:celery_app", "beat", "--loglevel=info", "--schedule=/tmp/celerybeat-schedule"]
     depends_on:
