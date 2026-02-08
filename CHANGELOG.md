@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.0](https://github.com/briancaffey/nvidia-nim-kit/compare/v1.6.0...v1.7.0) (2026-02-08)
+
+
+### Features
+
+* **magpie:** add support for magpie tts multilingual nim ([21509dd](https://github.com/briancaffey/nvidia-nim-kit/commit/21509dd3c8a29af9b295025a469c07a74f316681))
+
+
+### Bug Fixes
+
+* **redis:** small redis fix for model ([5b9c88b](https://github.com/briancaffey/nvidia-nim-kit/commit/5b9c88bd33fce7ce8fcbe3b30db00dc5d0d9d8a3))
+
 ## [1.6.0](https://github.com/briancaffey/nvidia-nim-kit/compare/v1.5.0...v1.6.0) (2025-09-30)
 
 
